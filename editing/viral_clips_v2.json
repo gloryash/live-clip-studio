@@ -1,0 +1,26 @@
+{
+  "base_config": "editing/viral_clips.json",
+  "output_dir": "exports/viral-clips-v2",
+  "clips": {
+    "01-ai-white-collar": {
+      "shot_profile": "duo",
+      "subtitle_gold": ["大量的白领的岗位其实是被AI代替掉的", "人最重要的是什么呢", "反而变成提出问题", "判断和审美"],
+      "cards": []
+    },
+    "02-leave-the-ship": {
+      "shot_profile": "main_with_guest",
+      "subtitle_gold": ["但未来大部分人都得游泳", "你就淹死了对不对", "最重要的是跟真实世界的连接", "走出学校"],
+      "cards": []
+    },
+    "03-first-100-users": {
+      "shot_profile": "main_with_guest",
+      "subtitle_gold": ["创造的门槛会降低", "而传播的门槛会提高", "因为供给会过剩", "你是不要做任何的推广"],
+      "cards": [
+        {"start": 63.4, "end": 65.2, "text": "1 个真实用户"},
+        {"start": 94.9, "end": 97.0, "text": "10 个持续用户"},
+        {"start": 97.0, "end": 98.2, "text": "20 个反馈用户"},
+        {"start": 141.8, "end": 145.1, "text": "前 100 个用户"}
+      ]
+    }
+  }
+}

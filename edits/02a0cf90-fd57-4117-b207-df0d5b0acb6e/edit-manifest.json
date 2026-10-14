@@ -1,0 +1,47 @@
+{
+  "source": "data/02a0cf90-fd57-4117-b207-df0d5b0acb6e/source.mp4",
+  "transcript": "data/02a0cf90-fd57-4117-b207-df0d5b0acb6e/transcript/segments.json",
+  "output_dir": "data/02a0cf90-fd57-4117-b207-df0d5b0acb6e/exports",
+  "clips": [
+    {
+      "id": "01-central-asia-window",
+      "title": "8000万人的中亚\n正在复制一遍中国互联网？",
+      "hook": "TikTok已经先冲进中亚了",
+      "promise": "2000万日活 / 8000万人口",
+      "segments": [
+        {"start": 508.04, "end": 532.96},
+        {"start": 451.72, "end": 458.22},
+        {"start": 459.74, "end": 495.32},
+        {"start": 541.08, "end": 569.18}
+      ]
+    },
+    {
+      "id": "02-ecommerce-shovels",
+      "title": "中亚电商真正赚钱的\n可能不是卖货的人",
+      "hook": "支付宝+淘宝+银行，已经合成一个APP",
+      "promise": "跨境卖家还有机会吗？",
+      "segments": [
+        {"start": 2153.92, "end": 2185.16},
+        {"start": 2186.84, "end": 2209.84},
+        {"start": 2252.74, "end": 2278.42},
+        {"start": 2281.40, "end": 2303.64},
+        {"start": 2336.10, "end": 2377.40},
+        {"start": 2412.92, "end": 2439.22}
+      ]
+    },
+    {
+      "id": "03-compliance-traps",
+      "title": "中国企业出海中亚\n最危险的不是没关系",
+      "hook": "把“关系”当合规，后面都出问题",
+      "promise": "关系 / 用工 / 税务 / 数据",
+      "segments": [
+        {"start": 4006.58, "end": 4022.10},
+        {"start": 4075.14, "end": 4104.86},
+        {"start": 4218.30, "end": 4232.36},
+        {"start": 4234.88, "end": 4252.20},
+        {"start": 4283.72, "end": 4327.18},
+        {"start": 5397.74, "end": 5456.60}
+      ]
+    }
+  ]
+}

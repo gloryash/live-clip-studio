@@ -1,0 +1,21 @@
+.venv/
+data/
+docs/qa/screenshots/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Generated media, local runs and scratch backups
+exports/
+tmp/
+speaker-lab-v2/outputs/
+视频号素材_*/
+editing/fonts/*.zip
+
+# Local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key

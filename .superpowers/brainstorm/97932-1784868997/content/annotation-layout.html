@@ -1,0 +1,41 @@
+<h2>人工说话人标注：交互方案</h2>
+<p class="subtitle">用于把现有字幕时间轴变成可导出的训练标注；不会重新调用 Whisper 或关键帧算法。</p>
+
+<div class="cards">
+  <div class="card" data-choice="autosave-jsonl" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mock-nav">00:04:12 — 00:04:15 <span style="float:right">人工标注</span></div>
+      <div class="mock-content" style="display:grid;grid-template-columns:110px 1fr auto;gap:12px;align-items:center">
+        <div><b>当前：说话人 2</b><br><small>原算法标签保留</small></div>
+        <div>我们接下来要做的，是让孩子从真实问题中学习 AI。</div>
+        <div style="display:flex;gap:6px"><button class="mock-button">说话人 1</button><button class="mock-button">说话人 2</button></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 即点即保存 + JSONL 导出（推荐）</h3>
+      <p>每句右侧固定两个按钮；点击后立即存到本地任务目录。顶部显示已标注进度，完成后导出 JSONL 训练集。刷新或关闭页面不会丢标注。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="save-all" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mock-nav">00:04:12 — 00:04:15 <span style="float:right">暂存改动</span></div>
+      <div class="mock-content" style="display:grid;grid-template-columns:110px 1fr auto;gap:12px;align-items:center">
+        <div><b>当前：说话人 2</b><br><small>尚未保存</small></div>
+        <div>我们接下来要做的，是让孩子从真实问题中学习 AI。</div>
+        <div style="display:flex;gap:6px"><button class="mock-button">说话人 1</button><button class="mock-button">说话人 2</button></div>
+      </div>
+      <div style="padding:12px;text-align:right"><button class="mock-button">保存 38 条改动</button></div>
+    </div>
+    <div class="card-body">
+      <h3>B · 浏览器暂存，统一保存</h3>
+      <p>请求较少，但长视频标注途中刷新、误关页面或浏览器崩溃可能丢失尚未保存的结果。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="label">推荐导出内容</p>
+  <div class="mockup"><div class="mockup-header">training-labels.jsonl</div><pre style="white-space:pre-wrap;margin:0;padding:14px">{"video_path":"source.mp4","start":252.16,"end":255.04,"text":"……","speaker":"SPEAKER_01","speaker_label":"说话人 2","manual_speaker":"SPEAKER_00","manual_speaker_label":"说话人 1"}</pre></div>
+  <p class="subtitle">一行一个字幕。保留算法原标签与人工纠正标签，训练时可只取 <code>manual_speaker</code>；不复制 331 MB 原视频或 154 MB 音频。</p>
+</div>

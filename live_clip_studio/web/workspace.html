@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>视频工作台 · Live Clip Studio</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/app.css?v=20260801-candidate-rebuild1">
+</head>
+<body data-page="workspace" data-job-id="__JOB_ID__">
+  <div class="signal-line" aria-hidden="true"></div>
+  <header class="topbar workspace-topbar">
+    <a class="wordmark" href="/">
+      <span class="wordmark-mark">LCS</span>
+      <span><b>LIVE CLIP STUDIO</b><small>TRANSCRIPT / FRAME DESK</small></span>
+    </a>
+    <div class="workspace-statuses">
+      <div class="job-readout">
+        <span class="status-lamp"></span>
+        <span id="job-stage">读取任务</span>
+        <b id="job-progress">00%</b>
+      </div>
+      <button class="annotation-readout" id="annotation-percentage" type="button" title="查看人工标注面板">
+        <span>人工标注</span>
+        <b id="annotation-percent">0.00%</b>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace-shell">
+    <aside class="reuse-notice" id="reuse-notice" hidden role="status">
+      <span>↺</span><p id="reuse-notice-text"></p><button id="close-reuse-notice" type="button" aria-label="关闭提示">×</button>
+    </aside>
+    <section class="video-deck" aria-label="视频播放器">
+      <div class="deck-label"><span>PROGRAM MONITOR</span><time id="player-time">00:00:00.000</time></div>
+      <video id="source-video" controls playsinline preload="metadata" src="/media/__JOB_ID__/source.mp4"></video>
+      <div class="video-meta"><span id="video-filename">直播录像</span><span id="video-duration">等待媒体信息</span></div>
+    </section>
+
+    <section class="analysis-desk">
+      <div class="tabs" role="tablist" aria-label="分析面板">
+        <button id="tab-transcript" class="tab active" role="tab" aria-selected="true" aria-controls="panel-transcript" type="button"><i>01</i> 字幕时间轴</button>
+        <button id="tab-keyframes" class="tab" role="tab" aria-selected="false" aria-controls="panel-keyframes" type="button"><i>02</i> 关键帧</button>
+      </div>
+
+      <section id="panel-transcript" class="panel active" role="tabpanel" aria-labelledby="tab-transcript">
+        <header class="panel-head">
+          <div><p class="eyebrow">WHO SAID WHAT / WHEN</p><h1>字幕与说话人</h1></div>
+          <div class="panel-actions"><span class="metric" id="speaker-count">— 位说话人</span><span class="metric" id="annotation-progress">人工标注 0 / —</span><button class="secondary-action auto-mode-toggle" id="auto-annotation-mode" type="button" aria-pressed="false">快捷标注 OFF</button><button class="secondary-action" id="export-ai-transcript" type="button" disabled>导出 AI 精准字幕 JSON</button><button class="secondary-action" id="export-training" type="button" disabled>导出训练集 JSONL</button><button class="secondary-action" id="rebuild-speaker-candidates" type="button">重新生成候选</button><button class="secondary-action" id="reprocess-transcript" type="button">重新生成字幕</button></div>
+        </header>
+        <div class="panel-notice" id="diarization-warning" hidden><b>说话人识别不可用</b><span id="diarization-detail">字幕文字仍然保留。</span></div>
+        <section class="candidate-review" id="candidate-review" hidden>
+          <header class="candidate-review-head">
+            <div><p class="eyebrow">VOICE CANDIDATES</p><h2>候选说话人</h2></div>
+            <span class="candidate-status" id="candidate-status">等待候选</span>
+          </header>
+          <div class="candidate-list" id="candidate-list"></div>
+          <div class="candidate-review-actions">
+            <button class="primary-action compact" id="apply-speaker-classification" type="button" disabled><span>应用到全部字幕</span><b>CLASSIFY →</b></button>
+          </div>
+          <p class="error-line" id="candidate-error" role="alert" hidden></p>
+        </section>
+        <section class="speaker-metrics" id="speaker-metrics" hidden>
+          <header><div><p class="eyebrow">LABELED EVALUATION</p><h2>说话人正确率</h2></div><span id="metrics-coverage">标注覆盖 0.00%</span></header>
+          <div class="metric-cards">
+            <article><span>标注内正确率</span><b id="all-labeled-accuracy">—</b><small id="all-labeled-detail">0 / 0</small></article>
+            <article><span>独立验证正确率</span><b id="held-out-accuracy">—</b><small id="held-out-detail">0 / 0</small></article>
+            <article><span>长字幕正确率</span><b id="long-accuracy">—</b><small id="long-detail">0 / 0 · ≥ 1 秒</small></article>
+            <article><span>短字幕正确率</span><b id="short-accuracy">—</b><small id="short-detail">0 / 0 · &lt; 1 秒</small></article>
+          </div>
+          <div class="speaker-metric-table" id="speaker-metric-table"></div>
+          <div class="speaker-confusion-wrap" id="speaker-confusion-wrap" hidden><h3>主要混淆</h3><div id="speaker-confusion"></div></div>
+        </section>
+        <div class="speaker-filters" id="speaker-filters" aria-label="按说话人筛选"></div>
+        <div class="annotation-shortcuts" id="annotation-shortcuts"><b>快捷标注</b><span><kbd>←</kbd> 说话人 1</span><span><kbd>→</kbd> 说话人 2</span><span><kbd>↓</kbd> 说话人 3</span><span><kbd>↑</kbd> 说话人 4</span><span><kbd>D</kbd> 删除字幕</span><span><kbd>Space</kbd> 播放 / 暂停</span><small>标注或删除后，下一条会自动播放</small></div>
+        <details class="playback-debug" id="playback-debug" open>
+          <summary><b>播放定位调试</b><span>当前规则：使用已校正的音视频时间轴，不再额外偏移</span></summary>
+          <pre id="playback-debug-log">等待快捷标注操作…</pre>
+        </details>
+        <div class="loading-state" id="transcript-loading"><span class="spinner"></span><b>正在生成精准字幕时间轴</b><small id="transcript-stage">等待 Whisper</small></div>
+        <button class="primary-action compact failed-transcript-retry" id="retry-failed-transcript" type="button" hidden><span>重新提交字幕任务</span><b>RETRY →</b></button>
+        <div class="transcript-list" id="transcript-list" aria-live="polite"></div>
+        <p class="error-line" id="annotation-error" role="alert" hidden></p>
+      </section>
+
+      <section id="panel-keyframes" class="panel" role="tabpanel" aria-labelledby="tab-keyframes" hidden>
+        <header class="panel-head keyframe-head">
+          <div><p class="eyebrow">SCENE-AWARE / DEDUPLICATED</p><h1>关键帧序列</h1></div>
+          <div class="panel-actions"><span class="metric" id="frame-count">尚未提取</span><button class="secondary-action" id="reprocess-keyframes" type="button">重新提取</button></div>
+        </header>
+        <div class="keyframe-launch" id="keyframe-launch">
+          <span class="frame-stack" aria-hidden="true"></span>
+          <h2>按需运行画面分析</h2>
+          <p>检测场景变化，使用双通道图像差异去重；不限制最终张数。</p>
+          <button class="primary-action compact" id="start-keyframes" type="button"><span>开始提取</span><b>RUN KEYFRAMES →</b></button>
+        </div>
+        <div class="loading-state" id="keyframe-loading" hidden><span class="spinner"></span><b>正在提取并去重关键帧</b><small id="keyframe-stage">读取视频画面</small></div>
+        <div id="keyframe-results" hidden>
+          <div class="grid-toolbar">
+            <div class="matrix-control">
+              <label for="grid-columns">列</label><input id="grid-columns" type="number" min="2" max="10" value="5">
+              <span>×</span>
+              <label for="grid-rows">行</label><input id="grid-rows" type="number" min="1" max="20" value="10">
+              <output id="grid-capacity">50 张/页</output>
+            </div>
+            <div class="presets" aria-label="矩阵预设">
+              <button type="button" data-matrix="2x20">2 × 20</button>
+              <button type="button" data-matrix="5x10">5 × 10</button>
+              <button type="button" data-matrix="10x10">10 × 10</button>
+            </div>
+          </div>
+          <div class="keyframe-grid" id="keyframe-grid"></div>
+          <nav class="pagination" aria-label="关键帧分页">
+            <button id="page-previous" type="button">← 上一页</button>
+            <span id="page-status">第 1 / 1 页</span>
+            <button id="page-next" type="button">下一页 →</button>
+          </nav>
+        </div>
+        <p class="error-line" id="keyframe-error" role="alert" hidden></p>
+      </section>
+    </section>
+  </main>
+  <script src="/assets/app.js?v=20260801-candidate-rebuild1" defer></script>
+</body>
+</html>

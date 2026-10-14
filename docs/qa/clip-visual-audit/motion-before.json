@@ -1,0 +1,476 @@
+[
+  {
+    "name": "source",
+    "frames": 507,
+    "per_second": [
+      {
+        "output_second": 6.87,
+        "mean_change": 0.016,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 7.87,
+        "mean_change": 0.107,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 8.87,
+        "mean_change": 0.023,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 9.87,
+        "mean_change": 0.019,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 10.87,
+        "mean_change": 0.004,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 11.87,
+        "mean_change": 0.558,
+        "near_static_frames": 26
+      },
+      {
+        "output_second": 12.87,
+        "mean_change": 0.044,
+        "near_static_frames": 26
+      },
+      {
+        "output_second": 13.87,
+        "mean_change": 0.005,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 14.87,
+        "mean_change": 1.472,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 15.87,
+        "mean_change": 0.002,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 16.87,
+        "mean_change": 0.004,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 17.87,
+        "mean_change": 0.002,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 18.87,
+        "mean_change": 0.001,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 19.87,
+        "mean_change": 0.002,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 20.87,
+        "mean_change": 0.006,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 21.87,
+        "mean_change": 0.574,
+        "near_static_frames": 28
+      }
+    ],
+    "static_runs": [
+      [
+        6.867,
+        7.6,
+        22
+      ],
+      [
+        7.733,
+        8.7,
+        29
+      ],
+      [
+        8.733,
+        9.7,
+        29
+      ],
+      [
+        9.733,
+        10.667,
+        28
+      ],
+      [
+        10.733,
+        12.1,
+        41
+      ],
+      [
+        12.167,
+        12.7,
+        16
+      ],
+      [
+        12.767,
+        13.1,
+        10
+      ],
+      [
+        13.133,
+        13.667,
+        16
+      ],
+      [
+        13.767,
+        15.8,
+        61
+      ],
+      [
+        15.833,
+        21.833,
+        180
+      ],
+      [
+        21.933,
+        22.867,
+        28
+      ],
+      [
+        22.9,
+        23.733,
+        25
+      ]
+    ]
+  },
+  {
+    "name": "cut",
+    "frames": 507,
+    "per_second": [
+      {
+        "output_second": 6.87,
+        "mean_change": 0.019,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 7.87,
+        "mean_change": 0.11,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 8.87,
+        "mean_change": 0.03,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 9.87,
+        "mean_change": 0.024,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 10.87,
+        "mean_change": 0.006,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 11.87,
+        "mean_change": 0.562,
+        "near_static_frames": 26
+      },
+      {
+        "output_second": 12.87,
+        "mean_change": 0.051,
+        "near_static_frames": 26
+      },
+      {
+        "output_second": 13.87,
+        "mean_change": 0.009,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 14.87,
+        "mean_change": 1.478,
+        "near_static_frames": 28
+      },
+      {
+        "output_second": 15.87,
+        "mean_change": 0.002,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 16.87,
+        "mean_change": 0.004,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 17.87,
+        "mean_change": 0.002,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 18.87,
+        "mean_change": 0.001,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 19.87,
+        "mean_change": 0.003,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 20.87,
+        "mean_change": 0.005,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 21.87,
+        "mean_change": 0.579,
+        "near_static_frames": 27
+      }
+    ],
+    "static_runs": [
+      [
+        6.867,
+        7.667,
+        24
+      ],
+      [
+        7.733,
+        8.667,
+        28
+      ],
+      [
+        8.733,
+        9.667,
+        28
+      ],
+      [
+        9.733,
+        10.667,
+        28
+      ],
+      [
+        10.733,
+        12.1,
+        41
+      ],
+      [
+        12.167,
+        12.7,
+        16
+      ],
+      [
+        12.767,
+        13.1,
+        10
+      ],
+      [
+        13.133,
+        13.667,
+        16
+      ],
+      [
+        13.767,
+        15.167,
+        42
+      ],
+      [
+        15.2,
+        15.8,
+        18
+      ],
+      [
+        15.833,
+        21.833,
+        180
+      ],
+      [
+        21.933,
+        22.767,
+        25
+      ],
+      [
+        22.9,
+        23.5,
+        18
+      ],
+      [
+        23.533,
+        23.733,
+        6
+      ]
+    ]
+  },
+  {
+    "name": "final",
+    "frames": 507,
+    "per_second": [
+      {
+        "output_second": 6.87,
+        "mean_change": 3.68,
+        "near_static_frames": 17
+      },
+      {
+        "output_second": 7.87,
+        "mean_change": 0.167,
+        "near_static_frames": 26
+      },
+      {
+        "output_second": 8.87,
+        "mean_change": 0.041,
+        "near_static_frames": 25
+      },
+      {
+        "output_second": 9.87,
+        "mean_change": 0.06,
+        "near_static_frames": 21
+      },
+      {
+        "output_second": 10.87,
+        "mean_change": 0.77,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 11.87,
+        "mean_change": 0.918,
+        "near_static_frames": 26
+      },
+      {
+        "output_second": 12.87,
+        "mean_change": 0.072,
+        "near_static_frames": 25
+      },
+      {
+        "output_second": 13.87,
+        "mean_change": 0.008,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 14.87,
+        "mean_change": 2.042,
+        "near_static_frames": 25
+      },
+      {
+        "output_second": 15.87,
+        "mean_change": 0.005,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 16.87,
+        "mean_change": 0.001,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 17.87,
+        "mean_change": 0.001,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 18.87,
+        "mean_change": 0.001,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 19.87,
+        "mean_change": 0.001,
+        "near_static_frames": 30
+      },
+      {
+        "output_second": 20.87,
+        "mean_change": 0.607,
+        "near_static_frames": 29
+      },
+      {
+        "output_second": 21.87,
+        "mean_change": 0.592,
+        "near_static_frames": 28
+      }
+    ],
+    "static_runs": [
+      [
+        7.4,
+        7.7,
+        9
+      ],
+      [
+        7.733,
+        8.7,
+        29
+      ],
+      [
+        8.867,
+        9.633,
+        23
+      ],
+      [
+        9.833,
+        10.267,
+        13
+      ],
+      [
+        10.5,
+        10.667,
+        5
+      ],
+      [
+        10.733,
+        11.0,
+        8
+      ],
+      [
+        11.033,
+        12.133,
+        33
+      ],
+      [
+        12.2,
+        12.7,
+        15
+      ],
+      [
+        12.767,
+        13.1,
+        10
+      ],
+      [
+        13.2,
+        13.667,
+        14
+      ],
+      [
+        13.767,
+        15.067,
+        39
+      ],
+      [
+        15.233,
+        15.8,
+        17
+      ],
+      [
+        15.867,
+        21.067,
+        156
+      ],
+      [
+        21.1,
+        21.9,
+        24
+      ],
+      [
+        22.0,
+        23.533,
+        46
+      ],
+      [
+        23.567,
+        23.733,
+        5
+      ]
+    ]
+  }
+]

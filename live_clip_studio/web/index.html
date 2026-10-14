@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Live Clip Studio · 直播切片工作台</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/app.css?v=20261014-history">
+</head>
+<body data-page="upload">
+  <div class="signal-line" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="wordmark" href="/" aria-label="Live Clip Studio 首页">
+      <span class="wordmark-mark">LCS</span>
+      <span><b>LIVE CLIP STUDIO</b><small>LOCAL EDIT SUITE / PHASE 01</small></span>
+    </a>
+    <div class="service-pill checking" id="service-status" role="status">
+      <span class="status-lamp"></span><span>检测语音服务</span>
+    </div>
+  </header>
+
+  <main class="upload-shell">
+    <section class="upload-intro">
+      <p class="eyebrow">LOCAL-FIRST VIDEO INTELLIGENCE</p>
+      <h1>把一场直播，<br><em>展开成可编辑的证据。</em></h1>
+      <p class="lede">上传视频后自动生成匿名说话人字幕时间轴；关键帧只在你需要时提取。所有内容留在本机。</p>
+      <div class="pipeline-strip" aria-label="处理流程">
+        <span><i>01</i> 上传</span><b></b><span><i>02</i> 字幕</span><b></b><span><i>03</i> 说话人</span><b></b><span><i>04</i> 关键帧</span>
+      </div>
+    </section>
+
+    <section class="upload-console" aria-labelledby="upload-heading">
+      <div class="console-head">
+        <div><span class="console-index">INPUT / A</span><h2 id="upload-heading">载入直播录像</h2></div>
+        <span class="local-badge">仅本机</span>
+      </div>
+      <label class="drop-zone" id="drop-zone" for="video-file">
+        <input id="video-file" type="file" accept="video/*,.mp4,.mov,.mkv,.webm" hidden>
+        <span class="reel-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        <strong id="file-title">选择视频，或拖到这里</strong>
+        <small id="file-meta">MP4 / MOV / MKV / WEBM · 文件不会上传云端</small>
+      </label>
+
+      <div class="warning-panel" id="whisper-warning" hidden>
+        <span>!</span>
+        <div><strong>语音服务尚未就绪</strong><p>请先开启语音转录服务：本机 Whisper Large V3 Turbo</p></div>
+      </div>
+
+      <div class="upload-progress" id="upload-progress" hidden>
+        <div><span id="upload-stage">正在写入本机</span><output id="upload-percent">0%</output></div>
+        <progress id="upload-bar" max="100" value="0">0%</progress>
+      </div>
+
+      <button class="primary-action" id="upload-button" type="button" disabled>
+        <span>开始分析</span><b>ENTER WORKSPACE →</b>
+      </button>
+      <p class="error-line" id="upload-error" role="alert" hidden></p>
+    </section>
+
+    <section class="history-library" aria-labelledby="history-heading">
+      <header class="history-head">
+        <div><p class="eyebrow">LOCAL TAPE LIBRARY</p><h2 id="history-heading">历史工作区</h2></div>
+        <span>自动保留 · 同文件复用</span>
+      </header>
+      <div class="history-loading" id="history-loading">正在读取本机记录</div>
+      <p class="history-empty" id="history-empty" hidden>还没有历史记录。上传第一段直播后，它会保留在这里。</p>
+      <div class="history-list" id="history-list" aria-live="polite"></div>
+    </section>
+
+    <section class="clip-library" aria-labelledby="clip-heading">
+      <header class="history-head">
+        <div><p class="eyebrow">AUTOMATED EDIT PIPELINE</p><h2 id="clip-heading">自动切片</h2></div>
+        <span>说话人标注完成后，一键生成</span>
+      </header>
+      <div class="clip-workbench">
+        <div class="clip-source-pane">
+          <div class="clip-section-label">01 / 选择直播</div>
+          <div id="clip-source-list" class="clip-source-list" aria-live="polite"><p class="history-loading">正在读取可用直播</p></div>
+        </div>
+        <div class="clip-template-pane">
+          <div class="clip-section-label">02 / 选择模板</div>
+          <div id="clip-template-list" class="clip-template-list" aria-live="polite"></div>
+          <button class="primary-action clip-start" id="clip-start" type="button" disabled><span>开始转换</span><b>RUN PIPELINE →</b></button>
+          <p class="error-line" id="clip-error" role="alert" hidden></p>
+        </div>
+      </div>
+      <div class="clip-history" aria-labelledby="clip-history-heading">
+        <header class="history-head">
+          <div><p class="eyebrow">SAVED CLIPS</p><h3 id="clip-history-heading">成片历史</h3></div>
+          <button type="button" class="secondary-action" id="clip-history-refresh">刷新记录</button>
+        </header>
+        <p class="clip-storage-note" id="clip-storage-note"></p>
+        <div id="clip-history-list" class="clip-history-list" aria-live="polite"></div>
+      </div>
+      <div id="clip-run-panel" class="clip-run-panel" hidden>
+        <div class="clip-run-head"><div><div class="clip-section-label">03 / 自动处理</div><h3 id="clip-run-title">正在转换</h3></div><span id="clip-run-status"></span></div>
+        <div class="clip-progress"><div id="clip-progress-bar"></div></div>
+        <div id="clip-stage-list" class="clip-stage-list"></div>
+        <div id="clip-result-list" class="clip-result-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot"><span>WHISPER LARGE V3 TURBO</span><span>SPEECHBRAIN DIARIZATION</span><span>FFMPEG SCENE DETECTION</span></footer>
+  <script src="/assets/app.js?v=20261014-visual-guard" defer></script>
+</body>
+</html>
