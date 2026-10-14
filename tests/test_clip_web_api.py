@@ -135,3 +135,70 @@ def test_history_exposes_storage_and_downloads_persisted_artifact(tmp_path: Path
     assert response.content == b"saved video"
     assert "attachment" in response.headers["content-disposition"]
 
+
+@pytest.mark.parametrize("failure", [False, True])
+def test_processing_time_is_persisted_on_success_and_failure(tmp_path, monkeypatch, failure):
+    from types import SimpleNamespace
+    from live_clip_studio import clip_runs
+    app, job_id = _job(tmp_path, complete=True)
+    manager = app.state.clip_runs
+    manager.executor = CapturingExecutor()
+    run = manager.create(job_id, "general")
+    # Queue age must not count as processing time.
+    manager._update(run["run_id"], created_at="2020-01-01T00:00:00+00:00")
+    ticks = iter([100.0, 112.75])
+    monkeypatch.setattr(clip_runs, "time", SimpleNamespace(monotonic=lambda: next(ticks)))
+
+    def execute(args):
+        current = manager.public(run["run_id"])
+        assert current["timing"]["finished_at"] is None
+        if failure:
+            raise ValueError("test failure")
+        (Path(args.out) / "decisions.json").write_text(json.dumps({"clips": [{"id": "01-test"}]}))
+        return {"status": "completed_pending_human_review"}
+
+    monkeypatch.setattr(clip_runs, "execute", execute)
+    manager._run(run["run_id"], app.state.job_store.get(job_id), {"count": 1})
+    restarted = ClipRunManager(store=app.state.job_store, settings=app.state.settings, executor=CapturingExecutor())
+    saved = restarted.public(run["run_id"])
+    assert saved["timing"]["elapsed_seconds"] == 12.75
+    assert saved["timing"]["finished_at"] is not None
+    assert saved["timing"]["selection_mode"] == "new_selection"
+    assert saved["status"] == ("failed" if failure else "completed")
+    if not failure:
+        assert restarted.create(job_id, "general")["timing"] == saved["timing"]
+        assert saved["result"]["count"] == 1
+
+
+def test_historical_timing_uses_latest_pipeline_span_and_persists(tmp_path):
+    app, job_id = _job(tmp_path, complete=True)
+    manager = app.state.clip_runs
+    manager.executor = CapturingExecutor()
+    run = manager.create(job_id, "general")
+    manager._update(run["run_id"], status="needs_review", created_at="2020-01-01T00:00:00+00:00")
+    updated = manager._read(run["run_id"])["updated_at"]
+    (manager._path(run["run_id"]) / "run.json").write_text(json.dumps({
+        "status": "needs_review", "stages": {
+            "preflight": {"status": "completed", "started_at": 100, "elapsed_seconds": 2},
+            "render": {"status": "completed", "started_at": 105, "elapsed_seconds": 15},
+            "qa": {"status": "completed", "started_at": 120, "elapsed_seconds": 10},
+        }}))
+    timing = manager.public(run["run_id"])["timing"]
+    assert timing["elapsed_seconds"] == 30
+    assert timing["origin"] == "pipeline_history"
+    assert timing["selection_mode"] == "unknown"
+    assert manager._read(run["run_id"])["timing"] == timing
+    assert manager._read(run["run_id"])["updated_at"] == updated
+
+
+def test_missing_or_interrupted_history_does_not_invent_duration(tmp_path):
+    app, job_id = _job(tmp_path, complete=True)
+    manager = app.state.clip_runs
+    manager.executor = CapturingExecutor()
+    run = manager.create(job_id, "general")
+    assert not manager.public(run["run_id"]).get("timing")
+    manager._update(run["run_id"], status="failed")
+    assert not manager.public(run["run_id"]).get("timing")
+    (manager._path(run["run_id"]) / "run.json").write_text(json.dumps({
+        "status": "failed", "stages": {"render": {"status": "running", "started_at": 100}}}))
+    assert not manager.public(run["run_id"]).get("timing")

@@ -165,6 +165,19 @@
     let selectedRunId = null, pollTimer = null, pollingRunId = null, submitting = false;
     const runLabels = { queued: "排队中", running: "转换中", completed: "已完成", needs_review: "已生成 · 需复核", failed: "转换失败" };
 
+    function elapsedLabel(seconds) {
+      if (typeof seconds !== "number" || !Number.isFinite(seconds)) return "未记录";
+      const total = Math.max(0, Math.round(seconds));
+      const hours = Math.floor(total / 3600), minutes = Math.floor(total % 3600 / 60), rest = total % 60;
+      return `${hours ? `${hours} 小时 ` : ""}${minutes ? `${minutes} 分 ` : ""}${rest} 秒`;
+    }
+
+    function timingLabel(run) {
+      if (run.status === "queued") return "等待开始计时";
+      const prefix = run.status === "running" ? "已处理" : "处理耗时";
+      return `${prefix} ${elapsedLabel(run.timing?.elapsed_seconds)}${run.timing?.origin === "pipeline_history" ? "（最近一次处理）" : ""}`;
+    }
+
     function matchingRun() {
       return runs.find((run) => run.job_id === selectedSource && run.template_id === selectedTemplate
         && ["queued", "running", "completed", "needs_review"].includes(run.status));
@@ -182,7 +195,7 @@
       qs("#clip-history-list").innerHTML = runs.length ? runs.map((run) => `
         <button type="button" class="clip-history-row${selectedRunId === run.run_id ? " selected" : ""}" data-clip-run="${escapeHtml(run.run_id)}" aria-pressed="${selectedRunId === run.run_id}">
           <strong>${escapeHtml(run.source_filename || "未命名直播")}</strong>
-          <span>${escapeHtml(run.template_name || run.template_id)} · ${run.result?.count || 0} 条成片 · ${escapeHtml(runLabels[run.status] || run.status)}</span>
+          <span>${escapeHtml(run.template_name || run.template_id)} · ${run.result?.count || 0} 条成片 · ${timingLabel(run)} · ${escapeHtml(runLabels[run.status] || run.status)}</span>
           <time>${escapeHtml(new Date(run.created_at).toLocaleString("zh-CN"))}</time><b>查看记录 →</b>
         </button>`).join("") : '<p class="history-empty">尚无转换记录。生成的成片、评分和评价会自动保留在这里。</p>';
       qsa("[data-clip-run]").forEach((button) => button.addEventListener("click", async () => {
@@ -246,10 +259,19 @@
       panel.hidden = false;
       qs("#clip-run-title").textContent = run.source_filename || "自动切片任务";
       qs("#clip-run-status").textContent = run.status === "failed" ? "转换失败" : run.status === "completed" ? "转换完成" : run.status === "needs_review" ? "需要人工复核" : stageLabel(run.stage);
+      const seconds = run.timing?.elapsed_seconds;
+      const count = run.result?.count || 0;
+      const finished = ["completed", "needs_review"].includes(run.status);
+      const average = finished && count && typeof seconds === "number" ? ` · 平均每条 ${elapsedLabel(seconds / count)}` : "";
+      const mode = run.timing?.origin === "pipeline_history" ? "历史阶段记录还原，可能包含配置或成片复用" : run.timing?.selection_mode === "reuse_decisions" ? "复用已有选题配置" : "";
+      qs("#clip-run-timing").textContent = `${count} 条成片 · ${timingLabel(run)}${average}。从开始处理到成片与质检结束，不含排队、转写及手动标注。${mode}`;
       qs("#clip-progress-bar").style.width = `${Math.max(0, Math.min(100, Number(run.progress || 0)))}%`;
       const stages = ["preflight", "ai_selection", "select", "plan", "render", "qa", "completed"];
       const current = stages.indexOf(run.stage);
-      qs("#clip-stage-list").innerHTML = stages.map((stage, index) => `<span class="clip-stage ${index < current || run.status === "completed" ? "done" : index === current ? "active" : ""}">${stageLabel(stage)}</span>`).join("");
+      qs("#clip-stage-list").innerHTML = stages.map((stage, index) => {
+        const elapsed = run.pipeline_stages?.[stage]?.elapsed_seconds;
+        return `<span class="clip-stage ${index < current || run.status === "completed" ? "done" : index === current ? "active" : ""}">${stageLabel(stage)}${typeof elapsed === "number" ? ` · ${elapsedLabel(elapsed)}` : ""}</span>`;
+      }).join("");
       error.hidden = !run.error;
       if (run.error) {
         error.textContent = run.error.message || "自动切片失败";

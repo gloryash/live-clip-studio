@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import threading
+import time
 import uuid
 from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor
@@ -17,6 +19,26 @@ from .jobs import JobNotFoundError, JobStore
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _historical_timing(pipeline: dict[str, Any]) -> dict[str, Any] | None:
+    """Recover only a finished pipeline span, never the age of a history row."""
+    stages = list(pipeline.get("stages", {}).values())
+    if not stages or pipeline.get("status") not in {"completed_pending_human_review", "needs_review", "failed"}:
+        return None
+    for stage in stages:
+        if stage.get("status") not in {"completed", "failed"}:
+            return None
+        for key in ("started_at", "elapsed_seconds"):
+            value = stage.get(key)
+            if not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                return None
+    start = min(s["started_at"] for s in stages)
+    end = max(s["started_at"] + s["elapsed_seconds"] for s in stages)
+    return {"started_at": datetime.fromtimestamp(start, timezone.utc).isoformat(),
+            "finished_at": datetime.fromtimestamp(end, timezone.utc).isoformat(),
+            "elapsed_seconds": round(end - start, 3), "origin": "pipeline_history",
+            "selection_mode": "unknown"}
 
 
 class ClipRunManager:
@@ -144,8 +166,15 @@ class ClipRunManager:
 
     def _run(self, run_id: str, job: dict[str, Any], template: dict[str, Any]) -> None:
         run_dir = self._path(run_id)
+        started = time.monotonic()
+        timing = {"started_at": _now(), "finished_at": None, "elapsed_seconds": None,
+                  "origin": "measured", "selection_mode": "reuse_decisions" if (run_dir / "decisions.json").is_file() else "new_selection"}
+
+        def finished_timing() -> dict[str, Any]:
+            return {**timing, "finished_at": _now(), "elapsed_seconds": round(time.monotonic() - started, 3)}
+
         try:
-            self._update(run_id, status="running", stage="preflight", progress=5)
+            self._update(run_id, status="running", stage="preflight", progress=5, timing=timing)
             job_dir = self.store.job_dir(str(job["job_id"]))
             media = self._read_json(job_dir / "media.json", {})
             stream = next((item for item in media.get("streams", []) if item.get("codec_type") == "video"), None)
@@ -191,16 +220,27 @@ class ClipRunManager:
                 })
             self._write_result(run_id, {"clips": clips, "count": len(clips)})
             final_status = "completed" if result.get("status") == "completed_pending_human_review" else "needs_review"
-            self._update(run_id, status=final_status, stage="completed", progress=100, result={"count": len(clips), "clips": clips})
+            self._update(run_id, status=final_status, stage="completed", progress=100,
+                         timing=finished_timing(), result={"count": len(clips), "clips": clips})
         except Exception as exc:
-            self._update(run_id, status="failed", stage="failed", progress=100, error={"message": str(exc)})
+            self._update(run_id, status="failed", stage="failed", progress=100,
+                         timing=finished_timing(), error={"message": str(exc)})
         finally:
             with self._lock:
                 self._submitted.discard(run_id)
 
     def public(self, run_id: str) -> dict[str, Any]:
-        run = self._read(run_id)
-        pipeline = self._read_json(self._path(run_id) / "run.json", {})
+        with self._lock:
+            run = self._read(run_id)
+            pipeline = self._read_json(self._path(run_id) / "run.json", {})
+            if not run.get("timing") and run.get("status") in {"completed", "needs_review", "failed"}:
+                recovered = _historical_timing(pipeline)
+                if recovered:
+                    run["timing"] = recovered
+                    self._write(run)
+        if run.get("status") == "running" and run.get("timing", {}).get("started_at"):
+            run["timing"]["elapsed_seconds"] = round(max(0, (datetime.now(timezone.utc) -
+                datetime.fromisoformat(run["timing"]["started_at"])).total_seconds()), 3)
         if pipeline.get("stages"):
             run["pipeline_stages"] = pipeline["stages"]
             if run.get("status") == "running":
