@@ -9,7 +9,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-from .contract import DECISION_SCHEMA, validate_decisions
+from .contract import DECISION_SCHEMA, decision_schema, validate_decisions
 from .input import compact_rows, export_job, read_json, validate_transcript, write_json
 from .model import MODEL, ModelClient, load_api_key
 from .qa import qa_clip
@@ -103,6 +103,8 @@ def execute(args) -> dict:
             raise ValueError("SOURCE_TIME: transcript and source duration differ")
         layout = read_json(Path(args.layout))
         validate_layout(layout, video["width"], video["height"])
+        template_id = layout.get("template_id", "general")
+        schema = decision_schema(template_id)
         source_info = {"path": str(source), "size": source.stat().st_size, "mtime_ns": source.stat().st_mtime_ns,
                        "sha256": file_digest(source)}
         input_hash = fingerprint(doc, layout, source_info, {"count": args.count, "banned": args.ban})
@@ -112,7 +114,7 @@ def execute(args) -> dict:
         write_json(out / "input.json", doc)
         write_json(out / "layout.json", layout)
         write_json(out / "input-report.json", {**report, "probe": probe, "input_hash": input_hash})
-        write_json(out / "decision.schema.json", DECISION_SCHEMA)
+        write_json(out / "decision.schema.json", schema)
         (out / "transcript.txt").write_text(compact_rows(doc["segments"]), encoding="utf-8")
     if args.command == "prepare":
         state.value.update(status="prepared")
@@ -129,17 +131,18 @@ def execute(args) -> dict:
         else:
             model = ModelClient(load_api_key())
             try:
-                decisions = select_clips(model, doc, args.count, out / "ai", banned_terms=tuple(args.ban))
+                decisions = select_clips(model, doc, args.count, out / "ai", banned_terms=tuple(args.ban), template_id=template_id)
             finally:
                 model.close()
-        report = validate_decisions(decisions, doc, banned_terms=tuple(args.ban))
+        report = validate_decisions(decisions, doc, banned_terms=tuple(args.ban), template_id=template_id)
         write_json(out / "validation.json", report)
         write_json(out / "decisions.json", decisions)
     with state.stage("plan"):
-        render_hash = fingerprint(input_hash, decisions, {"renderer": RENDER_REVISION})
+        render_hash = fingerprint(input_hash, decisions, {"renderer": "editorial-v1" if template_id == "editorial" else RENDER_REVISION})
         plans = [make_plan(clip, doc, layout) for clip in decisions["clips"]]
         for plan in plans:
-            if not 60 <= plan["duration"] <= 180:
+            maximum = 300 if template_id == "editorial" else 180
+            if not 60 <= plan["duration"] <= maximum:
                 raise ValueError(f"RENDER_DURATION: {plan['id']} {plan['duration']:.2f}s")
             cache = read_json(out / (plan["id"] + "-render.json"), {})
             if cache.get("render_hash") == render_hash and cache.get("resolved_shots"):

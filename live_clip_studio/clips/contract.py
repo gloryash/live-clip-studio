@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import difflib
 import re
 
@@ -39,6 +40,22 @@ CLIP_SCHEMA = obj({
 DECISION_SCHEMA = obj({"version": {"type": "integer", "const": 1}, "clips": {"type": "array", "minItems": 1, "maxItems": 30, "items": CLIP_SCHEMA}})
 
 
+def decision_schema(template_id: str = "general") -> dict:
+    if template_id == "general":
+        return DECISION_SCHEMA
+    if template_id != "editorial":
+        raise ValueError("TEMPLATE_NOT_FOUND: " + template_id)
+    schema = copy.deepcopy(DECISION_SCHEMA)
+    clip = schema["properties"]["clips"]["items"]
+    clip["properties"]["cold"] = {**IDS, "maxItems": 0}
+    clip["properties"]["title"] = copy.deepcopy(LINES)
+    clip["properties"]["title"]["items"]["maxLength"] = 24
+    clip["properties"]["title_highlights"] = {"type": "array", "maxItems": 4,
+        "items": {"type": "string", "minLength": 1, "maxLength": 20}}
+    clip["required"].append("title_highlights")
+    return schema
+
+
 class DecisionError(ValueError):
     def __init__(self, errors: list[str]):
         self.errors = errors
@@ -50,15 +67,25 @@ def normalized(text: str) -> str:
 
 
 def validate_decisions(value: dict, transcript: dict, *, min_seconds: float = 60, max_seconds: float = 180,
-                       banned_terms: tuple[str, ...] = (), require_dialogue: bool = True) -> dict:
+                       banned_terms: tuple[str, ...] = (), require_dialogue: bool = True, template_id: str = "general") -> dict:
     validate_transcript(transcript)
-    schema_errors = list(Draft202012Validator(DECISION_SCHEMA).iter_errors(value))
+    schema_errors = list(Draft202012Validator(decision_schema(template_id)).iter_errors(value))
     if schema_errors:
         raise DecisionError([("SCHEMA DUPLICATE_TURN " if e.validator == "uniqueItems" else "SCHEMA ") + "/".join(map(str, e.path)) + ": " + e.message for e in schema_errors][:15])
+    if template_id == "editorial":
+        max_seconds = 300
     turns = {r["id"]: r for r in transcript["segments"]}
     errors, reports, clip_ids = [], [], set()
     for clip in value["clips"]:
         cid, body, cold = clip["id"], clip["body"], clip["cold"]
+        if template_id == "editorial":
+            if any(not any(word in line for line in clip["title"]) for word in clip["title_highlights"]):
+                errors.append(f"TITLE_HIGHLIGHT {cid}: highlight must occur in a title line")
+            ordered = sorted(body, key=lambda tid: turns.get(tid, {}).get("start", 0))
+            if ordered != body:
+                errors.append(f"BODY_ORDER {cid}: preserve chronological argument")
+            if clip["cards"] or clip["lists"]:
+                errors.append(f"EDITORIAL_CARDS {cid}: use empty cards/lists")
         if cid in clip_ids:
             errors.append(f"DUPLICATE_CLIP {cid}")
         clip_ids.add(cid)
@@ -99,7 +126,7 @@ def validate_decisions(value: dict, transcript: dict, *, min_seconds: float = 60
         total, hook_duration = duration(body + cold), duration(cold)
         if not min_seconds <= total <= max_seconds:
             errors.append(f"CLIP_DURATION {cid}: {total:.2f}s outside {min_seconds}-{max_seconds}")
-        if not 3 <= hook_duration <= 7:
+        if template_id == "general" and not 3 <= hook_duration <= 7:
             errors.append(f"COLD_DURATION {cid}: {hook_duration:.2f}s outside 3-7")
         reports.append({"id": cid, "speech_seconds": round(total, 3), "cold_seconds": round(hook_duration, 3)})
     if errors:

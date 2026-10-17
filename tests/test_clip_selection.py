@@ -37,3 +37,22 @@ def test_repair_is_bounded_and_does_not_silently_drop_bad_clip(tmp_path):
         def request(self, *args, **kwargs): return {"version": 1, "clips": []}
     with pytest.raises(ValueError, match="SCHEMA"):
         generate_clip(BadModel(), document(), {"start_id": 10, "end_id": 35, "topic": "观点"}, tmp_path / "detail")
+
+
+def test_discovery_invalid_ids_are_repaired_with_feedback(tmp_path):
+    from live_clip_studio.clips.selection import select_clips
+    class Model:
+        def __init__(self): self.calls = 0
+        def request(self,prompt,schema,evidence,**kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                return {'topics':[{'topic':'观点','reason':'完整','start_id':670,'end_id':782,'score':9}]}
+            if self.calls == 2:
+                assert 'TOPIC_RANGE' in prompt
+                assert '第一列' in prompt
+                return {'topics':[{'topic':'观点','reason':'完整','start_id':10,'end_id':35,'score':9}]}
+            return decision()
+    model=Model()
+    assert select_clips(model,document(),1,tmp_path)['clips']
+    assert model.calls == 3
+    assert (tmp_path/'discover-01-validation-1.json').exists()

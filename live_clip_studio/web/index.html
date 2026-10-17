@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Live Clip Studio · 直播切片工作台</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20261014-history">
+  <link rel="stylesheet" href="/assets/app.css?v=20261017-editorial">
 </head>
 <body data-page="upload">
   <div class="signal-line" aria-hidden="true"></div>
@@ -80,6 +80,13 @@
         <div class="clip-template-pane">
           <div class="clip-section-label">02 / 选择模板</div>
           <div id="clip-template-list" class="clip-template-list" aria-live="polite"></div>
+          <div id="clip-template-options" class="clip-template-options" hidden>
+            <p>资料选填；未填不显示。请按已标注的说话人确认姓名和身份。</p>
+            <label>品牌名<input id="clip-brand" maxlength="20" placeholder="例如：我的访谈"></label>
+            <label>栏目／本期名称<input id="clip-series" maxlength="32" placeholder="例如：创业者对谈 第 1 期"></label>
+            <div id="clip-participant-fields"></div>
+            <p>保留原视频的机位切换；横向双人画面仍并排展示。修改资料会生成新的转换记录。</p>
+          </div>
           <button class="primary-action clip-start" id="clip-start" type="button" disabled><span>开始转换</span><b>RUN PIPELINE →</b></button>
           <p class="error-line" id="clip-error" role="alert" hidden></p>
         </div>
@@ -103,6 +110,6 @@
   </main>
 
   <footer class="site-foot"><span>WHISPER LARGE V3 TURBO</span><span>SPEECHBRAIN DIARIZATION</span><span>FFMPEG SCENE DETECTION</span></footer>
-  <script src="/assets/app.js?v=20261014-run-timing" defer></script>
+  <script src="/assets/app.js?v=20261017-editorial" defer></script>
 </body>
 </html>

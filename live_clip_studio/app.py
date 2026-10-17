@@ -171,7 +171,7 @@ def create_app(
     @application.post("/api/clip-runs", status_code=202)
     def create_clip_run(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
         try:
-            return clip_runs.create(str(payload.get("job_id") or ""), str(payload.get("template_id") or ""))
+            return clip_runs.create(str(payload.get("job_id") or ""), str(payload.get("template_id") or ""), payload.get("template_options"))
         except ValueError as exc:
             message = str(exc)
             status_code = 404 if message.startswith("JOB_NOT_FOUND") else 409 if message.startswith("SOURCE_NOT_READY") else 422

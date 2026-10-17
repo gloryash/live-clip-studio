@@ -178,9 +178,43 @@
       return `${prefix} ${elapsedLabel(run.timing?.elapsed_seconds)}${run.timing?.origin === "pipeline_history" ? "（最近一次处理）" : ""}`;
     }
 
+    const optionDrafts = new Map();
+    function optionsKey() { return `${selectedSource || ""}:${selectedTemplate || ""}`; }
+    function currentOptions() {
+      if (selectedTemplate !== "editorial") return {};
+      const value = optionDrafts.get(optionsKey()) || {};
+      return {brand: (value.brand || "").trim(), series: (value.series || "").trim(),
+        participants: (value.participants || []).map(p => ({speaker_id:p.speaker_id,name:p.name.trim(),identity:p.identity.trim()}))
+          .filter(p => p.name || p.identity).sort((a,b) => a.speaker_id.localeCompare(b.speaker_id))};
+    }
+    function sameOptions(a, b) {
+      return JSON.stringify(a || {}) === JSON.stringify(b || {});
+    }
+    function renderOptions() {
+      const box = qs("#clip-template-options");
+      box.hidden = selectedTemplate !== "editorial";
+      if (box.hidden) return;
+      const value = currentOptions();
+      qs("#clip-brand").value = value.brand;
+      qs("#clip-series").value = value.series;
+      const speakers = sources.find(s => s.job_id === selectedSource)?.clip_speakers || [];
+      qs("#clip-participant-fields").innerHTML = speakers.length ? speakers.map(s => {
+        const p = value.participants.find(p => p.speaker_id === s.id) || {};
+        return `<div class="clip-person-fields" data-speaker-id="${escapeHtml(s.id)}"><strong>${escapeHtml(s.name)} · ${escapeHtml(s.id)}</strong><label>姓名／称呼<input data-person-name maxlength="16" value="${escapeHtml(p.name || "")}" placeholder="确认后填写"></label><label>身份／职务<input data-person-identity maxlength="32" value="${escapeHtml(p.identity || "")}" placeholder="例如：某公司创始人；未知留空"></label></div>`;
+      }).join("") : '<p>先选择直播，即可按说话人填写资料。</p>';
+    }
+    qs("#clip-template-options").addEventListener("input", () => {
+      optionDrafts.set(optionsKey(), {brand:qs("#clip-brand").value,series:qs("#clip-series").value,
+        participants:[...qs("#clip-participant-fields").querySelectorAll("[data-speaker-id]")].map(el => ({
+          speaker_id:el.dataset.speakerId,name:el.querySelector("[data-person-name]").value,
+          identity:el.querySelector("[data-person-identity]").value}))});
+      updateStart();
+    });
+
     function matchingRun() {
       return runs.find((run) => run.job_id === selectedSource && run.template_id === selectedTemplate
-        && ["queued", "running", "completed", "needs_review"].includes(run.status));
+        && ["queued", "running", "completed", "needs_review"].includes(run.status)
+        && sameOptions(run.template_options, currentOptions()));
     }
 
     function updateStart() {
@@ -203,7 +237,8 @@
           const { data } = await requestJson(`/api/clip-runs/${button.dataset.clipRun}`);
           selectedSource = data.job_id;
           selectedTemplate = data.template_id;
-          renderSources(); renderTemplates(); renderRun(data);
+          optionDrafts.set(optionsKey(), data.template_options || {});
+          renderSources(); renderTemplates(); renderOptions(); renderRun(data);
           panel.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (historyError) { error.textContent = historyError.message; error.hidden = false; }
       }));
@@ -231,7 +266,7 @@
       }).join("");
       qsa("[data-clip-source]").forEach((button) => button.addEventListener("click", () => {
         selectedSource = button.dataset.clipSource;
-        renderSources();
+        renderSources(); renderOptions();
         updateStart();
       }));
     }
@@ -239,11 +274,11 @@
     function renderTemplates() {
       templateList.innerHTML = templates.map((template) => `
         <button type="button" class="clip-template-card${selectedTemplate === template.id ? " selected" : ""}" data-clip-template="${escapeHtml(template.id)}" aria-pressed="${selectedTemplate === template.id}">
-          <strong>${escapeHtml(template.name)}</strong><p>${escapeHtml(template.description)}</p><span>${template.count} 条候选切片 · 固定访谈镜头规则</span>
+          <strong>${escapeHtml(template.name)}</strong><p>${escapeHtml(template.description)}</p><span>${template.count} 条候选切片 · ${escapeHtml(template.style_summary || "固定访谈镜头规则")}</span>
         </button>`).join("");
       qsa("[data-clip-template]").forEach((button) => button.addEventListener("click", () => {
         selectedTemplate = button.dataset.clipTemplate;
-        renderTemplates();
+        renderTemplates(); renderOptions();
         updateStart();
       }));
     }
@@ -257,7 +292,7 @@
       rememberRun(run);
       renderHistory(); renderSources(); updateStart();
       panel.hidden = false;
-      qs("#clip-run-title").textContent = run.source_filename || "自动切片任务";
+      qs("#clip-run-title").textContent = `${run.source_filename || "自动切片任务"} · ${run.template_name || ""}`;
       qs("#clip-run-status").textContent = run.status === "failed" ? "转换失败" : run.status === "completed" ? "转换完成" : run.status === "needs_review" ? "需要人工复核" : stageLabel(run.stage);
       const seconds = run.timing?.elapsed_seconds;
       const count = run.result?.count || 0;
@@ -265,6 +300,11 @@
       const average = finished && count && typeof seconds === "number" ? ` · 平均每条 ${elapsedLabel(seconds / count)}` : "";
       const mode = run.timing?.origin === "pipeline_history" ? "历史阶段记录还原，可能包含配置或成片复用" : run.timing?.selection_mode === "reuse_decisions" ? "复用已有选题配置" : "";
       qs("#clip-run-timing").textContent = `${count} 条成片 · ${timingLabel(run)}${average}。从开始处理到成片与质检结束，不含排队、转写及手动标注。${mode}`;
+      const params = run.template_options;
+      if (run.template_id === "editorial" && params) {
+        qs("#clip-run-timing").textContent += ` 本次资料：品牌 ${params.brand || "未填"}；栏目 ${params.series || "未填"}；` +
+          (params.participants || []).map(p => `${p.name}${p.identity ? `（${p.identity}）` : ""}`).join("、");
+      }
       qs("#clip-progress-bar").style.width = `${Math.max(0, Math.min(100, Number(run.progress || 0)))}%`;
       const stages = ["preflight", "ai_selection", "select", "plan", "render", "qa", "completed"];
       const current = stages.indexOf(run.stage);
@@ -312,7 +352,7 @@
         const existing = matchingRun();
         const { data } = existing
           ? await requestJson(`/api/clip-runs/${existing.run_id}`)
-          : await requestJson("/api/clip-runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: selectedSource, template_id: selectedTemplate }) });
+          : await requestJson("/api/clip-runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_id: selectedSource, template_id: selectedTemplate, template_options: currentOptions() }) });
         renderRun(data);
         panel.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (runError) {

@@ -105,17 +105,29 @@ def render_clip(source: Path, clip: dict, plan: dict, layout: dict, out: Path) -
     spec = {"brand": layout["brand"], "guest_tag": ["嘉宾", "访谈"], "host_tag": ["主持", "访谈"]}
     for person in layout["people"].values():
         spec["guest_tag" if person["role"] == "G" else "host_tag"] = person["tag"]
-    els, sfx = graphics.build_elements(legacy_clip, spec, items, pieces, plan["shots"], plan["cues"], plan["duration"])
-    sfx_paths = graphics.make_sfx(out / "_work/sfx")
+    editorial = layout.get("template_id") == "editorial"
     temporary = work / "final.mp4"
-    graphics.render_final(cut, plan["shots"], els, sfx, sfx_paths, plan["total_frames"], temporary, work,
-                          shot_filter_fn=lambda k, s: shot_filter(k, s, layout))
+    if editorial:
+        from . import editorial as style
+        els = style.build_elements(clip, plan, layout.get("template_options", {}))
+        graphics.render_final(cut, plan["shots"], els, [], {}, plan["total_frames"], temporary, work,
+                              shot_filter_fn=lambda k, s: style.shot_filter(k, s, layout),
+                              base_layer_fn=style.background, progress_bar=False)
+    else:
+        els, sfx = graphics.build_elements(legacy_clip, spec, items, pieces, plan["shots"], plan["cues"], plan["duration"])
+        sfx_paths = graphics.make_sfx(out / "_work/sfx")
+        graphics.render_final(cut, plan["shots"], els, sfx, sfx_paths, plan["total_frames"], temporary, work,
+                              shot_filter_fn=lambda k, s: shot_filter(k, s, layout))
     target = out / (clip["id"] + ".mp4")
     temporary.replace(target)
     (out / (clip["id"] + ".srt")).write_text("".join(
         f"{k}\n{graphics.srt_time(c['start'])} --> {graphics.srt_time(c['end'])}\n{c['text']}\n\n"
         for k, c in enumerate(plan["cues"], 1)), encoding="utf-8")
-    make_cover(source, clip, plan, layout, out / (clip["id"] + "-cover.jpg"), work)
+    if editorial:
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(min(.5, plan["duration"]/2)),
+                        "-i", str(target), "-frames:v", "1", str(out / (clip["id"] + "-cover.jpg"))], check=True, timeout=60)
+    else:
+        make_cover(source, clip, plan, layout, out / (clip["id"] + "-cover.jpg"), work)
     report = {"id": clip["id"], "duration": plan["duration"], "probe": graphics.probe(target), "log": str(work / "ffmpeg.log"),
               "source_visual": visual, "resolved_shots": plan["shots"]}
     write_json(out / (clip["id"] + "-render.json"), report)

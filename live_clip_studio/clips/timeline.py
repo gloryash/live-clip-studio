@@ -120,9 +120,15 @@ def make_plan(clip: dict, doc: dict, layout: dict) -> dict:
             item.piece_out0, item.first_in_piece = out, k == 0
         out += piece.frames / FPS
     total_frames = sum(p.frames for p in pieces)
-    shots = plan_shots(items, pieces, total_frames)
+    if layout.get("template_id") == "editorial":
+        # Keep source camera work; sentence edits use ordinary hard cuts.
+        shots = [{"fa": round(p.out0 * FPS), "fb": round(p.out0 * FPS) + p.frames,
+                  "a": p.out0, "b": p.out0 + p.frames / FPS, "mode": "duo", "flash": False} for p in pieces]
+    else:
+        shots = plan_shots(items, pieces, total_frames)
     cues = graphics.build_cues(items, out)
-    return {"id": clip["id"], "duration": round(out, 6), "total_frames": total_frames,
+    return {"source_speakers": {str(r["id"]): r["speaker"]["id"] for r in rows},
+            "id": clip["id"], "duration": round(out, 6), "total_frames": total_frames,
             "items": [asdict(i) for i in items],
             "pieces": [{"source_start": p.s_q, "source_end": p.s_q + p.frames / FPS,
                         "frames": p.frames, "out": p.out0, "cold": p.cold, "chapter": p.chapter,

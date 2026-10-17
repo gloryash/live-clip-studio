@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .clip_templates import build_layout, choose_layout, get_template
+from .clip_templates import build_editorial_layout, build_layout, choose_layout, get_template, normalize_options
 from .clips.pipeline import execute
 from .jobs import JobNotFoundError, JobStore
 
@@ -73,10 +73,11 @@ class ClipRunManager:
         path = self._path(run_id) / "result.json"
         path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def _existing_for(self, job_id: str, template_id: str) -> dict[str, Any] | None:
+    def _existing_for(self, job_id: str, template_id: str, options: dict | None = None) -> dict[str, Any] | None:
         for run in self.list_runs():
             if (run.get("job_id") == job_id and run.get("template_id") == template_id
-                    and run.get("status") in {"queued", "running", "completed", "needs_review"}):
+                    and run.get("status") in {"queued", "running", "completed", "needs_review"}
+                    and run.get("template_options", {}) == (options or {})):
                 return run
         return None
 
@@ -111,6 +112,16 @@ class ClipRunManager:
             return False, "还没有应用说话人分类"
         return True, "已完成说话人标注"
 
+    def speaker_options(self, job_id: str) -> list[dict[str, str]]:
+        folder = self.store.job_dir(job_id) / "transcript"
+        names = self._read_json(folder / "manual-speakers.json", {}).get("speakers", {})
+        predictions = self._read_json(folder / "speaker-predictions.json", {}).get("predictions", {})
+        annotations = self._read_json(folder / "manual-speaker-labels.json", {}).get("annotations", {})
+        ids = {p.get("speaker_id") for p in predictions.values() if isinstance(p, dict)}
+        ids.update(v for v in annotations.values() if isinstance(v, str))
+        ids.update(names)
+        return [{"id": sid, "name": names.get(sid, sid)} for sid in sorted(s for s in ids if s and s != "UNKNOWN")]
+
     def list_sources(self) -> list[dict[str, Any]]:
         result = []
         runs = self.list_runs()
@@ -120,17 +131,22 @@ class ClipRunManager:
                 "run_id": run["run_id"], "template_id": run["template_id"],
                 "status": run["status"], "clip_count": run.get("result", {}).get("count", 0),
             } for run in runs if run.get("job_id") == job["job_id"]]
-            result.append({**job, "clip_ready": ready, "clip_ready_reason": reason, "clip_runs": history})
+            result.append({**job, "clip_ready": ready, "clip_ready_reason": reason, "clip_runs": history,
+                           "clip_speakers": self.speaker_options(str(job["job_id"]))})
         return result
 
-    def create(self, job_id: str, template_id: str) -> dict[str, Any]:
+    def create(self, job_id: str, template_id: str, template_options: Any = None) -> dict[str, Any]:
         template = get_template(template_id)
         try:
             job = self.store.get(job_id)
         except JobNotFoundError as exc:
             raise ValueError("JOB_NOT_FOUND: 找不到这场直播") from exc
+        options = normalize_options(template_id, template_options)
+        allowed = {p["id"] for p in self.speaker_options(job_id)}
+        if any(p["speaker_id"] not in allowed for p in options.get("participants", [])):
+            raise ValueError("TEMPLATE_OPTIONS: 资料中的说话人不属于当前直播")
         with self._lock:
-            existing = self._existing_for(job_id, template_id)
+            existing = self._existing_for(job_id, template_id, options)
             if existing:
                 return {**existing, "reused": True}
             ready, reason = self._source_readiness(job)
@@ -143,6 +159,7 @@ class ClipRunManager:
                 "job_id": job_id,
                 "template_id": template.id,
                 "template_name": template.name,
+                "template_options": options,
                 "source_filename": job.get("filename"),
                 "status": "queued",
                 "stage": "queued",
@@ -180,9 +197,14 @@ class ClipRunManager:
             stream = next((item for item in media.get("streams", []) if item.get("codec_type") == "video"), None)
             if not stream:
                 raise ValueError("SOURCE_VIDEO_STREAM: 找不到视频流")
-            layout_source = choose_layout(Path(__file__).resolve().parents[1] / "editing" / "layouts",
-                                          int(stream["width"]), int(stream["height"]))
-            layout_path = build_layout(layout_source, run_dir / "layout.json")
+            layout_dir = Path(__file__).resolve().parents[1] / "editing" / "layouts"
+            if template.get("id") == "editorial":
+                options = normalize_options("editorial", self._read(run_id).get("template_options"))
+                layout_path = build_editorial_layout(layout_dir, int(stream["width"]), int(stream["height"]),
+                                                     run_dir / "layout.json", options)
+            else:
+                layout_source = choose_layout(layout_dir, int(stream["width"]), int(stream["height"]))
+                layout_path = build_layout(layout_source, run_dir / "layout.json")
             self._update(run_id, stage="ai_selection", progress=15)
             result = execute(Namespace(
                 command="run",

@@ -1,0 +1,66 @@
+{
+  "run_id": "5a53ea01-0930-44bc-9909-bdbe09e7cd6d",
+  "source": "孩子沉迷游戏怎么办？_xWT111.mp4",
+  "template_options": {
+    "brand": "访谈精选",
+    "series": "教育访谈",
+    "participants": []
+  },
+  "timing": {
+    "started_at": "2026-10-17T19:51:52.742338+00:00",
+    "finished_at": "2026-10-17T19:57:35.645174+00:00",
+    "elapsed_seconds": 342.903,
+    "origin": "measured",
+    "selection_mode": "new_selection"
+  },
+  "clips": [
+    {
+      "title": "密室如何制造沉浸感机制与叙事缺一不可",
+      "id": "01-immersive-escape-design",
+      "duration": 130.066667,
+      "virality": 82,
+      "qa": "PASS",
+      "speech_ratio": 0.9638,
+      "technical": {
+        "status": "PASS",
+        "video_seconds": 130.1,
+        "audio_seconds": 130.139,
+        "av_difference": 0.039
+      },
+      "full_decode": "PASS",
+      "loudness_lufs": "-14.77"
+    },
+    {
+      "title": "你是在玩游戏还是被游戏玩？",
+      "id": "02-game-or-be-played",
+      "duration": 157.433333,
+      "virality": 86,
+      "qa": "REVIEW",
+      "speech_ratio": 0.9625,
+      "technical": {
+        "status": "PASS",
+        "video_seconds": 157.433333,
+        "audio_seconds": 157.449,
+        "av_difference": 0.01567
+      },
+      "full_decode": "PASS",
+      "loudness_lufs": "-14.13"
+    },
+    {
+      "title": "游戏时间，别一刀切怎么给孩子慢慢调整",
+      "id": "03-game-time-step",
+      "duration": 105.4,
+      "virality": 82,
+      "qa": "REVIEW",
+      "speech_ratio": 0.9662,
+      "technical": {
+        "status": "PASS",
+        "video_seconds": 105.4,
+        "audio_seconds": 105.46,
+        "av_difference": 0.06
+      },
+      "full_decode": "PASS",
+      "loudness_lufs": "-14.33"
+    }
+  ]
+}

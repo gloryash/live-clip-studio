@@ -580,14 +580,17 @@ def extract_pieces(source: Path, pieces: list[Piece], work: Path) -> Path:
 
 def render_final(cut: Path, shots: list[dict[str, Any]], els: list[El], sfx: list[tuple[float, str, float]],
                  sfx_paths: dict[str, Path], total_frames: int, out_path: Path, work: Path,
-                 *, shot_filter_fn=None) -> None:
+                 *, shot_filter_fn=None, base_layer_fn=None, progress_bar=True) -> None:
     duration = total_frames / FPS
     names = sorted({name for _, name, _ in sfx})
     lines = [f"[0:v]split={len(shots)}" + "".join(f"[s{i}]" for i in range(len(shots)))]
     lines += [(shot_filter_fn or shot_filter)(i, s) for i, s in enumerate(shots)]
     lines.append("".join(f"[o{i}]" for i in range(len(shots))) + f"concat=n={len(shots)}:v=1:a=0[base]")
-    lines.append(f"color=c=0xFFD640:s={W}x6:r={FPS}:d={duration:.3f}[bar]")
-    lines.append(f"[base][bar]overlay=x='-w+W*t/{duration:.3f}':y={BAR_Y - 6}[vb]")
+    if progress_bar:
+        lines.append(f"color=c=0xFFD640:s={W}x6:r={FPS}:d={duration:.3f}[bar]")
+        lines.append(f"[base][bar]overlay=x='-w+W*t/{duration:.3f}':y={BAR_Y - 6}[vb]")
+    else:
+        lines.append("[base]null[vb]")
     lines.append("[vb][1:v]overlay=0:0:format=yuv420,format=yuv420p[vout]")
     lines.append("[0:a]aformat=sample_fmts=fltp,volume=0.8,highpass=f=70,acompressor=threshold=0.125:ratio=3:attack=10:release=200:makeup=2,"
                  "loudnorm=I=-15:TP=-1.5:LRA=8,aresample=48000[voice]")
@@ -612,7 +615,7 @@ def render_final(cut: Path, shots: list[dict[str, Any]], els: list[El], sfx: lis
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", str(out_path)]
     log = (work / "ffmpeg.log").open("w")
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=log)
-    base = base_layer()
+    base = (base_layer_fn or base_layer)()
     last_key, last_bytes = None, b""
     try:
         for f in range(total_frames):
