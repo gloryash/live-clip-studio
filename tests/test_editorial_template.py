@@ -107,3 +107,23 @@ def test_real_editorial_render_has_one_window_static_title_and_no_effects(sample
     assert '1080:960' in graph and 'pad=1080:1920:0:510' in graph
     assert 'fade=' not in graph and '[bar]' not in graph and 'whoosh' not in graph
     assert (tmp_path/'01-test-cover.jpg').stat().st_size>0
+
+
+def test_template_revision_creates_new_history_without_overwriting_old(tmp_path):
+    from fastapi.testclient import TestClient
+    app, job_id = _job(tmp_path, complete=True)
+    manager=app.state.clip_runs;manager.executor=CapturingExecutor();client=TestClient(app)
+    payload={'job_id':job_id,'template_id':'editorial'}
+    old=client.post('/api/clip-runs',json=payload).json()
+    manager._update(old['run_id'],template_revision=1,status='completed')
+    new=client.post('/api/clip-runs',json=payload).json()
+    assert new['run_id'] != old['run_id'] and new['template_revision']==2
+    assert client.post('/api/clip-runs',json=payload).json()['run_id']==new['run_id']
+    assert manager._read(old['run_id'])['template_revision']==1
+
+
+def test_position_can_be_given_without_inventing_a_name():
+    value=normalize_options('editorial',{'participants':[{'speaker_id':'guest','name':'','identity':'','screen_position':'right'}]})
+    assert value['participants'][0]['screen_position']=='right'
+    with pytest.raises(ValueError, match='TEMPLATE_OPTIONS'):
+        normalize_options('editorial',{'participants':[{'speaker_id':'guest','name':'','identity':'','screen_position':'center'}]})

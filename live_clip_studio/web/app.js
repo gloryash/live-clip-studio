@@ -184,8 +184,8 @@
       if (selectedTemplate !== "editorial") return {};
       const value = optionDrafts.get(optionsKey()) || {};
       return {brand: (value.brand || "").trim(), series: (value.series || "").trim(),
-        participants: (value.participants || []).map(p => ({speaker_id:p.speaker_id,name:p.name.trim(),identity:p.identity.trim()}))
-          .filter(p => p.name || p.identity).sort((a,b) => a.speaker_id.localeCompare(b.speaker_id))};
+        participants: (value.participants || []).map(p => ({speaker_id:p.speaker_id,name:p.name.trim(),identity:p.identity.trim(),screen_position:p.screen_position || "auto"}))
+          .filter(p => p.name || p.identity || p.screen_position !== "auto").sort((a,b) => a.speaker_id.localeCompare(b.speaker_id))};
     }
     function sameOptions(a, b) {
       return JSON.stringify(a || {}) === JSON.stringify(b || {});
@@ -200,20 +200,21 @@
       const speakers = sources.find(s => s.job_id === selectedSource)?.clip_speakers || [];
       qs("#clip-participant-fields").innerHTML = speakers.length ? speakers.map(s => {
         const p = value.participants.find(p => p.speaker_id === s.id) || {};
-        return `<div class="clip-person-fields" data-speaker-id="${escapeHtml(s.id)}"><strong>${escapeHtml(s.name)} · ${escapeHtml(s.id)}</strong><label>姓名／称呼<input data-person-name maxlength="16" value="${escapeHtml(p.name || "")}" placeholder="确认后填写"></label><label>身份／职务<input data-person-identity maxlength="32" value="${escapeHtml(p.identity || "")}" placeholder="例如：某公司创始人；未知留空"></label></div>`;
+        return `<div class="clip-person-fields" data-speaker-id="${escapeHtml(s.id)}"><strong>${escapeHtml(s.name)} · ${escapeHtml(s.id)}</strong><label>姓名／称呼<input data-person-name maxlength="16" value="${escapeHtml(p.name || "")}" placeholder="确认后填写"></label><label>身份／职务<input data-person-identity maxlength="32" value="${escapeHtml(p.identity || "")}" placeholder="例如：某公司创始人；未知留空"></label><fieldset class="clip-position"><legend>左右分屏中的出镜位置</legend>${[["auto","自动／保留多人"],["left","左侧"],["right","右侧"]].map(([v,label]) => `<label><input type="radio" name="clip-position-${escapeHtml(s.id)}" value="${v}" ${(p.screen_position || "auto") === v ? "checked" : ""}>${label}</label>`).join("")}</fieldset></div>`;
       }).join("") : '<p>先选择直播，即可按说话人填写资料。</p>';
     }
     qs("#clip-template-options").addEventListener("input", () => {
       optionDrafts.set(optionsKey(), {brand:qs("#clip-brand").value,series:qs("#clip-series").value,
         participants:[...qs("#clip-participant-fields").querySelectorAll("[data-speaker-id]")].map(el => ({
           speaker_id:el.dataset.speakerId,name:el.querySelector("[data-person-name]").value,
-          identity:el.querySelector("[data-person-identity]").value}))});
+          identity:el.querySelector("[data-person-identity]").value,screen_position:el.querySelector("input[type=radio]:checked")?.value || "auto"}))});
       updateStart();
     });
 
     function matchingRun() {
       return runs.find((run) => run.job_id === selectedSource && run.template_id === selectedTemplate
         && ["queued", "running", "completed", "needs_review"].includes(run.status)
+        && (run.template_revision || 1) === (templates.find(t => t.id === selectedTemplate)?.revision || 1)
         && sameOptions(run.template_options, currentOptions()));
     }
 
@@ -229,7 +230,7 @@
       qs("#clip-history-list").innerHTML = runs.length ? runs.map((run) => `
         <button type="button" class="clip-history-row${selectedRunId === run.run_id ? " selected" : ""}" data-clip-run="${escapeHtml(run.run_id)}" aria-pressed="${selectedRunId === run.run_id}">
           <strong>${escapeHtml(run.source_filename || "未命名直播")}</strong>
-          <span>${escapeHtml(run.template_name || run.template_id)} · ${run.result?.count || 0} 条成片 · ${timingLabel(run)} · ${escapeHtml(runLabels[run.status] || run.status)}</span>
+          <span>${escapeHtml(run.template_name || run.template_id)} v${run.template_revision || 1} · ${run.result?.count || 0} 条成片 · ${timingLabel(run)} · ${escapeHtml(runLabels[run.status] || run.status)}</span>
           <time>${escapeHtml(new Date(run.created_at).toLocaleString("zh-CN"))}</time><b>查看记录 →</b>
         </button>`).join("") : '<p class="history-empty">尚无转换记录。生成的成片、评分和评价会自动保留在这里。</p>';
       qsa("[data-clip-run]").forEach((button) => button.addEventListener("click", async () => {
@@ -292,7 +293,7 @@
       rememberRun(run);
       renderHistory(); renderSources(); updateStart();
       panel.hidden = false;
-      qs("#clip-run-title").textContent = `${run.source_filename || "自动切片任务"} · ${run.template_name || ""}`;
+      qs("#clip-run-title").textContent = `${run.source_filename || "自动切片任务"} · ${run.template_name || ""} v${run.template_revision || 1}`;
       qs("#clip-run-status").textContent = run.status === "failed" ? "转换失败" : run.status === "completed" ? "转换完成" : run.status === "needs_review" ? "需要人工复核" : stageLabel(run.stage);
       const seconds = run.timing?.elapsed_seconds;
       const count = run.result?.count || 0;

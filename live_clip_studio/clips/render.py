@@ -98,6 +98,9 @@ def render_clip(source: Path, clip: dict, plan: dict, layout: dict, out: Path) -
     work.mkdir(parents=True, exist_ok=True)
     cut = extract_pieces(source, plan, work)
     plan["shots"], visual = inspect_cut(cut, plan, layout)
+    if layout.get("template_id") == "editorial":
+        from .editorial_framing import reframe_cut
+        visual["editorial_framing"] = reframe_cut(cut, plan, layout)
     plan["source_visual"] = visual
     write_json(out / "plans" / (clip["id"] + ".json"), plan)
     items, pieces = graphic_objects(plan)

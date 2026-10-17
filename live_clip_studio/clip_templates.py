@@ -11,6 +11,7 @@ class ClipTemplate:
     name: str
     description: str
     count: int = 3
+    revision: int = 1
     accepts_identity: bool = False
     style_summary: str = "固定访谈镜头规则"
 
@@ -26,9 +27,9 @@ TEMPLATES: dict[str, ClipTemplate] = {
         count=3,
     ),
     "editorial": ClipTemplate(
-        id="editorial", name="观点对谈",
+        id="editorial", name="观点对谈", revision=2,
         description="黑绿观点标题、自然问答、单一画面窗口、克制字幕和栏目署名。",
-        accepts_identity=True, style_summary="保留原镜头 · 1–5 分钟 · 姓名身份可选填",
+        accepts_identity=True, style_summary="v2 · 人物主体构图 · 姓名身份可选填",
     ),
 }
 
@@ -100,7 +101,7 @@ def normalize_options(template_id: str, value: Any = None) -> dict[str, Any]:
         raise ValueError("TEMPLATE_OPTIONS: 最多填写 30 位发言者")
     normalized, seen = [], set()
     for person in people:
-        if not isinstance(person, dict) or set(person) != {"speaker_id", "name", "identity"}:
+        if not isinstance(person, dict) or (set(person) - {"speaker_id", "name", "identity", "screen_position"} or not {"speaker_id", "name", "identity"} <= set(person)):
             raise ValueError("TEMPLATE_OPTIONS: 发言者需要 speaker_id、name、identity")
         sid = text(person["speaker_id"], 80)
         if not sid or sid == "UNKNOWN" or sid in seen:
@@ -109,8 +110,11 @@ def normalize_options(template_id: str, value: Any = None) -> dict[str, Any]:
         name, identity = text(person["name"], 16), text(person["identity"], 32)
         if identity and not name:
             raise ValueError("TEMPLATE_OPTIONS: 填写身份时也请填写姓名或称呼")
-        if name:
-            normalized.append({"speaker_id": sid, "name": name, "identity": identity})
+        position = person.get("screen_position", "auto")
+        if position not in ("auto", "left", "right"):
+            raise ValueError("TEMPLATE_OPTIONS: 出镜位置必须为 auto/left/right")
+        if name or position != "auto":
+            normalized.append({"speaker_id": sid, "name": name, "identity": identity, "screen_position": position})
     return {"brand": text(value.get("brand", ""), 20), "series": text(value.get("series", ""), 32),
             "participants": sorted(normalized, key=lambda p: p["speaker_id"])}
 

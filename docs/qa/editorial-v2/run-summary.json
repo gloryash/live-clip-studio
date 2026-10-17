@@ -1,0 +1,152 @@
+{
+  "run_id": "59d0bc4d-7bde-469d-8faa-535d163c5924",
+  "baseline_run_id": "4bb131f2-ce24-47bc-8229-777d09d5038e",
+  "template_revision": 2,
+  "comparison_mode": "same body/audio decisions; final titles and fictional demo identities",
+  "status": "needs_review",
+  "timing": {
+    "started_at": "2026-10-17T20:51:16.373733+00:00",
+    "finished_at": "2026-10-17T20:53:44.254590+00:00",
+    "elapsed_seconds": 147.882,
+    "origin": "measured",
+    "selection_mode": "reuse_decisions"
+  },
+  "clips": [
+    {
+      "id": "01-immersive-escape",
+      "status": "PASS",
+      "technical": {
+        "status": "PASS",
+        "video_seconds": 129.666667,
+        "audio_seconds": 129.639,
+        "av_difference": 0.02767
+      },
+      "full_decode": "PASS",
+      "loudness": {
+        "input_i": "-14.77",
+        "input_tp": "-1.05",
+        "input_lra": "2.40",
+        "input_thresh": "-24.92",
+        "output_i": "-14.99",
+        "output_tp": "-1.50",
+        "output_lra": "2.30",
+        "output_thresh": "-25.13",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.01"
+      },
+      "visual_review": "PENDING",
+      "speech": {
+        "status": "PASS",
+        "ratio": 0.9749,
+        "suspicious_cut_issues": []
+      }
+    },
+    {
+      "id": "02-play-or-be-played",
+      "status": "REVIEW",
+      "technical": {
+        "status": "PASS",
+        "video_seconds": 240.566667,
+        "audio_seconds": 240.576,
+        "av_difference": 0.00933
+      },
+      "full_decode": "PASS",
+      "loudness": {
+        "input_i": "-14.17",
+        "input_tp": "-0.97",
+        "input_lra": "3.00",
+        "input_thresh": "-24.42",
+        "output_i": "-14.72",
+        "output_tp": "-1.50",
+        "output_lra": "2.90",
+        "output_thresh": "-24.97",
+        "normalization_type": "dynamic",
+        "target_offset": "-0.28"
+      },
+      "visual_review": "PENDING",
+      "speech": {
+        "status": "REVIEW",
+        "ratio": 0.9721,
+        "suspicious_cut_issues": [
+          {
+            "op": "delete",
+            "t": 73.5,
+            "near_cut": 0.167,
+            "expected": "这这这这还有",
+            "heard": "",
+            "source_time": 3633.033,
+            "turn_ids": [
+              1518
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "03-game-time",
+      "status": "REVIEW",
+      "technical": {
+        "status": "PASS",
+        "video_seconds": 102.266016,
+        "audio_seconds": 102.36,
+        "av_difference": 0.09398
+      },
+      "full_decode": "PASS",
+      "loudness": {
+        "input_i": "-14.29",
+        "input_tp": "-1.11",
+        "input_lra": "2.20",
+        "input_thresh": "-24.53",
+        "output_i": "-15.12",
+        "output_tp": "-1.84",
+        "output_lra": "2.00",
+        "output_thresh": "-25.36",
+        "normalization_type": "dynamic",
+        "target_offset": "0.12"
+      },
+      "visual_review": "PENDING",
+      "speech": {
+        "status": "REVIEW",
+        "ratio": 0.9659,
+        "suspicious_cut_issues": [
+          {
+            "op": "delete",
+            "t": 20.66,
+            "near_cut": 0.227,
+            "expected": "呢就是",
+            "heard": "",
+            "source_time": 5044.893,
+            "turn_ids": [
+              2212,
+              2213,
+              2214
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "browser": {
+    "port": 9400,
+    "url": "http://127.0.0.1:8788/",
+    "desktop_width": 1280,
+    "desktop_body_width": 1265,
+    "mobile_width": 390,
+    "mobile_overflow": false,
+    "playback": {
+      "all_three_ready_state": 4,
+      "resolution": [
+        1080,
+        1920
+      ],
+      "seek_seconds": 40,
+      "advanced_seconds": [
+        52.423318,
+        52.381888,
+        52.372918
+      ],
+      "media_errors": []
+    },
+    "page_errors": []
+  }
+}

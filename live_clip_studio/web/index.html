@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Live Clip Studio · 直播切片工作台</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20261017-editorial">
+  <link rel="stylesheet" href="/assets/app.css?v=20261018-editorial-v2">
 </head>
 <body data-page="upload">
   <div class="signal-line" aria-hidden="true"></div>
@@ -85,7 +85,7 @@
             <label>品牌名<input id="clip-brand" maxlength="20" placeholder="例如：我的访谈"></label>
             <label>栏目／本期名称<input id="clip-series" maxlength="32" placeholder="例如：创业者对谈 第 1 期"></label>
             <div id="clip-participant-fields"></div>
-            <p>保留原视频的机位切换；横向双人画面仍并排展示。修改资料会生成新的转换记录。</p>
+            <p>自动放大主要人物并保留头部空间。左右分屏可指定发言者位置；未指定则保留多人。资料或模板版本改变会生成新记录。</p>
           </div>
           <button class="primary-action clip-start" id="clip-start" type="button" disabled><span>开始转换</span><b>RUN PIPELINE →</b></button>
           <p class="error-line" id="clip-error" role="alert" hidden></p>
@@ -110,6 +110,6 @@
   </main>
 
   <footer class="site-foot"><span>WHISPER LARGE V3 TURBO</span><span>SPEECHBRAIN DIARIZATION</span><span>FFMPEG SCENE DETECTION</span></footer>
-  <script src="/assets/app.js?v=20261017-editorial" defer></script>
+  <script src="/assets/app.js?v=20261018-editorial-v2" defer></script>
 </body>
 </html>

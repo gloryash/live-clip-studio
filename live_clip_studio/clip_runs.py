@@ -77,6 +77,7 @@ class ClipRunManager:
         for run in self.list_runs():
             if (run.get("job_id") == job_id and run.get("template_id") == template_id
                     and run.get("status") in {"queued", "running", "completed", "needs_review"}
+                    and run.get("template_revision", 1) == get_template(template_id).revision
                     and run.get("template_options", {}) == (options or {})):
                 return run
         return None
@@ -159,6 +160,7 @@ class ClipRunManager:
                 "job_id": job_id,
                 "template_id": template.id,
                 "template_name": template.name,
+                "template_revision": template.revision,
                 "template_options": options,
                 "source_filename": job.get("filename"),
                 "status": "queued",
