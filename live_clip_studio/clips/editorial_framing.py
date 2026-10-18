@@ -10,6 +10,20 @@ FPS = 30
 RATIO = 1080 / 960
 
 
+def pip_region(bounds, faces):
+    """Return a portrait-friendly source window around a small PiP face."""
+    if not faces:
+        return list(bounds)
+    bx, by, bw, bh = bounds
+    face = faces[0]
+    cx, cy = face[0] + face[2] / 2, face[1] + face[3] / 2
+    width = min(bw, max(240, int(face[2] * 8)))
+    height = min(bh, max(int(width / RATIO), int(face[3] * 5)))
+    x = max(bx, min(cx - width / 2, bx + bw - width))
+    y = max(by, min(cy - height / 2, by + bh - height))
+    return [int(x)//2*2, int(y)//2*2, int(width)//2*2, int(height)//2*2]
+
+
 def choose_crop(bounds, observations, *, trim_bottom=False):
     """Keep head room and all observed face extents; avoid per-frame tracking."""
     x, y, w, h = bounds
@@ -38,6 +52,16 @@ def main_faces(faces, bounds, side='auto'):
     if not inside: return [], list(bounds), 'no_face'
     # Ignore tiny PiP faces. Equal-sized people stay together unless position is explicit.
     large=[f for f in inside if f[2]*f[3]>=inside[0][2]*inside[0][3]*.30]
+    if side == 'main':
+        # In a main-plus-PiP source, the largest detected face is the main feed.
+        return [inside[0]], list(bounds), 'main_face'
+    if side == 'pip':
+        # A PiP assignment is only trusted when there is a distinct second face.
+        # If the detector sees one face, preserving the source is safer than
+        # silently zooming the main feed for the wrong speaker.
+        if len(inside) >= 2 and inside[-1][2] * inside[-1][3] < inside[0][2] * inside[0][3] * .70:
+            return [inside[-1]], pip_region(bounds, [inside[-1]]), 'pip_face'
+        return [], list(bounds), 'no_pip_face'
     if side in ('left','right') and w/h>=1.05:
         half=[x if side=='left' else x+w/2,y,w/2,h]
         selected=[f for f in large if half[0]<=f[0] and f[0]+f[2]<=half[0]+half[2]]
@@ -95,7 +119,10 @@ def reframe_cut(cut, plan, layout):
             midpoint=(a+b)/(2*FPS)
             span=next((s for s in spans if midpoint<s['end']),spans[-1] if spans else {})
             side=people.get(span.get('sid'),{}).get('screen_position','auto')
-            bounds=shot.get('scene_rect',layout['scene'])
+            # main/pip explicitly describe a full portrait source. The PiP
+            # often sits outside the configured split scene, so do not crop it
+            # out before face selection.
+            bounds=[0,0,width,height] if side in ('main','pip') else shot.get('scene_rect',layout['scene'])
             nearby=[s for s in samples if a/FPS<=s[0]<b/FPS]
             if not nearby and samples: nearby=[min(samples,key=lambda s:abs(s[0]-midpoint))]
             decisions=[main_faces(f,bounds,side) for _,f,_ in nearby]
@@ -106,7 +133,9 @@ def reframe_cut(cut, plan, layout):
             threshold=.30 if side in ('left','right') and bounds[2]/bounds[3]>=1.05 else .70
             if reliable and len(reliable)>=len(decisions)*threshold and len({d[2] for d in reliable})==1 and modes.count('multiple_people')<=len(modes)*.1:
                 mode=reliable[0][2];region=reliable[0][1][:]
-                if mode=='dominant_face' and region[2]/region[3]<1:
+                if mode == 'pip_face':
+                    region = pip_region([0, 0, width, height], [f for d in reliable for f in d[0]])
+                if mode in ('dominant_face', 'main_face', 'pip_face') and region[2]/region[3]<1:
                     top=max(region[1],min(s[2][0] for s in nearby))
                     bottom=min(region[1]+region[3],max(s[2][1] for s in nearby))
                     # Only remove outer bands; retain all observed face boxes.
@@ -132,4 +161,4 @@ def reframe_cut(cut, plan, layout):
     for record,shot in zip(evidence,result):
         record.update(mode=shot['framing_mode'],crop=shot['editorial_rect'])
     plan['shots']=result
-    return {'revision':'editorial-framing-v2','ranges':evidence,'note':'人脸只用于稳定构图；左右发言者位置须明确填写。小窗不作为主要脸部；检测不足保留原画面。'}
+    return {'revision':'editorial-framing-v3','ranges':evidence,'note':'人脸只用于稳定构图；左右发言者位置须明确填写。main/pip 用于主画面加小窗布局；检测不足保留原画面。'}

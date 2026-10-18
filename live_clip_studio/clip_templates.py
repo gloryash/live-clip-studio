@@ -27,9 +27,9 @@ TEMPLATES: dict[str, ClipTemplate] = {
         count=3,
     ),
     "editorial": ClipTemplate(
-        id="editorial", name="观点对谈", revision=2,
+        id="editorial", name="观点对谈", revision=3,
         description="黑绿观点标题、自然问答、单一画面窗口、克制字幕和栏目署名。",
-        accepts_identity=True, style_summary="v2 · 人物主体构图 · 姓名身份可选填",
+        accepts_identity=True, style_summary="v3 · 人物主体构图 · 主画面／小窗可选 · 姓名身份可选填",
     ),
 }
 
@@ -111,8 +111,8 @@ def normalize_options(template_id: str, value: Any = None) -> dict[str, Any]:
         if identity and not name:
             raise ValueError("TEMPLATE_OPTIONS: 填写身份时也请填写姓名或称呼")
         position = person.get("screen_position", "auto")
-        if position not in ("auto", "left", "right"):
-            raise ValueError("TEMPLATE_OPTIONS: 出镜位置必须为 auto/left/right")
+        if position not in ("auto", "left", "right", "main", "pip"):
+            raise ValueError("TEMPLATE_OPTIONS: 出镜位置必须为 auto/left/right/main/pip")
         if name or position != "auto":
             normalized.append({"speaker_id": sid, "name": name, "identity": identity, "screen_position": position})
     return {"brand": text(value.get("brand", ""), 20), "series": text(value.get("series", ""), 32),

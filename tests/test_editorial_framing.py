@@ -20,6 +20,16 @@ def test_tiny_pip_is_not_primary_and_multi_person_requires_confirmed_side():
     assert face==[faces[1]]
 
 
+def test_main_and_pip_positions_select_the_speaking_face_in_portrait_source():
+    faces=[[350,269,34,34],[114,509,235,235]]
+    main, main_region, main_mode=main_faces(faces,[0,0,912,1920],'main')
+    pip, pip_region, pip_mode=main_faces(faces,[0,0,912,1920],'pip')
+    assert main_mode=='main_face' and main==[faces[1]]
+    assert pip_mode=='pip_face' and pip==[faces[0]]
+    assert pip_region[2] < 912 and pip_region[3] < 1920
+    assert pip_region[0] <= faces[0][0] and pip_region[0]+pip_region[2] >= faces[0][0]+faces[0][2]
+
+
 def test_uncertain_and_edge_faces_never_produce_out_of_bounds_crops():
     assert choose_crop([0,0,912,1920],[])==[0,0,912,1920]
     for face in [[0,0,400,400],[0,1700,200,200],[600,500,300,300]]:

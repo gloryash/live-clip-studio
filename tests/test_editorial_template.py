@@ -117,7 +117,7 @@ def test_template_revision_creates_new_history_without_overwriting_old(tmp_path)
     old=client.post('/api/clip-runs',json=payload).json()
     manager._update(old['run_id'],template_revision=1,status='completed')
     new=client.post('/api/clip-runs',json=payload).json()
-    assert new['run_id'] != old['run_id'] and new['template_revision']==2
+    assert new['run_id'] != old['run_id'] and new['template_revision']==3
     assert client.post('/api/clip-runs',json=payload).json()['run_id']==new['run_id']
     assert manager._read(old['run_id'])['template_revision']==1
 
@@ -127,3 +127,10 @@ def test_position_can_be_given_without_inventing_a_name():
     assert value['participants'][0]['screen_position']=='right'
     with pytest.raises(ValueError, match='TEMPLATE_OPTIONS'):
         normalize_options('editorial',{'participants':[{'speaker_id':'guest','name':'','identity':'','screen_position':'center'}]})
+
+
+def test_main_and_pip_positions_are_valid_template_options():
+    value=normalize_options('editorial',{'participants':[
+        {'speaker_id':'host','name':'','identity':'','screen_position':'pip'},
+        {'speaker_id':'guest','name':'','identity':'','screen_position':'main'}]})
+    assert {p['screen_position'] for p in value['participants']} == {'main','pip'}
