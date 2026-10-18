@@ -30,6 +30,12 @@ def test_main_and_pip_positions_select_the_speaking_face_in_portrait_source():
     assert pip_region[0] <= faces[0][0] and pip_region[0]+pip_region[2] >= faces[0][0]+faces[0][2]
 
 
+def test_legacy_left_right_does_not_assign_portrait_pip_audio_to_main_face():
+    faces=[[698,536,73,73],[203,1068,423,423]]
+    face, region, mode=main_faces(faces,[0,0,912,1920],'left')
+    assert face == [] and region == [0,0,912,1920] and mode == 'ambiguous_pip'
+
+
 def test_uncertain_and_edge_faces_never_produce_out_of_bounds_crops():
     assert choose_crop([0,0,912,1920],[])==[0,0,912,1920]
     for face in [[0,0,400,400],[0,1700,200,200],[600,500,300,300]]:

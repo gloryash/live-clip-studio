@@ -62,7 +62,15 @@ def main_faces(faces, bounds, side='auto'):
         if len(inside) >= 2 and inside[-1][2] * inside[-1][3] < inside[0][2] * inside[0][3] * .70:
             return [inside[-1]], pip_region(bounds, [inside[-1]]), 'pip_face'
         return [], list(bounds), 'no_pip_face'
-    if side in ('left','right') and w/h>=1.05:
+    if side in ('left','right'):
+        # A legacy left/right choice is ambiguous on a full portrait source.
+        # When the frame contains one large face and a much smaller PiP face,
+        # falling through to dominant_face would silently assign the audio to
+        # the wrong person. Preserve the source until the user selects main/pip.
+        if w / h < 1.05:
+            if len(inside) >= 2 and inside[-1][2] * inside[-1][3] < inside[0][2] * inside[0][3] * .70:
+                return [], list(bounds), 'ambiguous_pip'
+            return [], list(bounds), 'no_face'
         half=[x if side=='left' else x+w/2,y,w/2,h]
         selected=[f for f in large if half[0]<=f[0] and f[0]+f[2]<=half[0]+half[2]]
         if len(selected)==1:
