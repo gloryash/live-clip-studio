@@ -23,7 +23,10 @@ def pip_region(bounds, faces):
     face = faces[0]
     cx, cy = face[0] + face[2] / 2, face[1] + face[3] / 2
     width = min(bw, max(150, int(face[2] * 2.4)))
-    height = min(bh, max(int(width / RATIO), int(face[3] * 3.6)))
+    height = min(bh, max(int(width / RATIO), int(face[3] * 2.5)))
+    # PiP labels are normally rendered below the face. Bias the window upward
+    # so the label does not become the dominant element after enlargement.
+    cy -= face[3] * .5
     x = max(bx, min(cx - width / 2, bx + bw - width))
     y = max(by, min(cy - height / 2, by + bh - height))
     return [int(x)//2*2, int(y)//2*2, int(width)//2*2, int(height)//2*2]
