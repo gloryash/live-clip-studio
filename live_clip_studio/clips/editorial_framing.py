@@ -11,14 +11,19 @@ RATIO = 1080 / 960
 
 
 def pip_region(bounds, faces):
-    """Return a portrait-friendly source window around a small PiP face."""
+    """Return a tight portrait-friendly source window around a small PiP face.
+
+    The detected face is already inside the small source panel. A broad
+    window makes the panel stay visually small after the portrait render, so
+    keep only a modest margin around the face and panel label.
+    """
     if not faces:
         return list(bounds)
     bx, by, bw, bh = bounds
     face = faces[0]
     cx, cy = face[0] + face[2] / 2, face[1] + face[3] / 2
-    width = min(bw, max(240, int(face[2] * 8)))
-    height = min(bh, max(int(width / RATIO), int(face[3] * 5)))
+    width = min(bw, max(150, int(face[2] * 2.4)))
+    height = min(bh, max(int(width / RATIO), int(face[3] * 3.6)))
     x = max(bx, min(cx - width / 2, bx + bw - width))
     y = max(by, min(cy - height / 2, by + bh - height))
     return [int(x)//2*2, int(y)//2*2, int(width)//2*2, int(height)//2*2]
