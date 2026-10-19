@@ -85,6 +85,11 @@ def transcribe_for_qa(wav: Path, evidence: Path, *, timeout_seconds: float = 600
     raise ValueError(f"QA_WHISPER_TIMEOUT: job {job}, deadline {timeout_seconds}s")
 
 
+def framing_review_ranges(source_visual: dict) -> list[dict]:
+    return (source_visual.get('framing', {}).get('review_ranges', [])
+            + source_visual.get('editorial_framing', {}).get('review_ranges', []))
+
+
 def qa_clip(path: Path, plan: dict, doc: dict, qa_dir: Path, *, speech: bool = True) -> dict:
     qa_dir.mkdir(parents=True, exist_ok=True)
     stem = path.stem
@@ -136,7 +141,7 @@ def qa_clip(path: Path, plan: dict, doc: dict, qa_dir: Path, *, speech: bool = T
             issue.update(source_time=round(p["source_start"]+issue["t"]-p["out"], 3), turn_ids=p["turns"])
     else:
         report["speech"] = {"status": "SKIPPED"}
-    framing_review = report["source_visual"].get("framing", {}).get("review_ranges", [])
+    framing_review = framing_review_ranges(report["source_visual"])
     report["status"] = "PASS" if report["speech"]["status"] == "PASS" and not report["source_visual"].get("source_holds") and not framing_review else "REVIEW"
     write_json(qa_dir / f"{stem}-qa.json", report)
     return report

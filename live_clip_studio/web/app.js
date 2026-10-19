@@ -184,8 +184,8 @@
       if (selectedTemplate !== "editorial") return {};
       const value = optionDrafts.get(optionsKey()) || {};
       return {brand: (value.brand || "").trim(), series: (value.series || "").trim(),
-        participants: (value.participants || []).map(p => ({speaker_id:p.speaker_id,name:p.name.trim(),identity:p.identity.trim(),screen_position:p.screen_position || "auto"}))
-          .filter(p => p.name || p.identity || p.screen_position !== "auto").sort((a,b) => a.speaker_id.localeCompare(b.speaker_id))};
+        participants: (value.participants || []).map(p => ({speaker_id:p.speaker_id,name:p.name.trim(),identity:p.identity.trim(),screen_position:"auto"}))
+          .filter(p => p.name || p.identity).sort((a,b) => a.speaker_id.localeCompare(b.speaker_id))};
     }
     function sameOptions(a, b) {
       return JSON.stringify(a || {}) === JSON.stringify(b || {});
@@ -200,7 +200,7 @@
       const speakers = sources.find(s => s.job_id === selectedSource)?.clip_speakers || [];
       qs("#clip-participant-fields").innerHTML = speakers.length ? speakers.map(s => {
         const p = value.participants.find(p => p.speaker_id === s.id) || {};
-        return `<div class="clip-person-fields" data-speaker-id="${escapeHtml(s.id)}"><strong>${escapeHtml(s.name)} · ${escapeHtml(s.id)}</strong><label>姓名／称呼<input data-person-name maxlength="16" value="${escapeHtml(p.name || "")}" placeholder="确认后填写"></label><label>身份／职务<input data-person-identity maxlength="32" value="${escapeHtml(p.identity || "")}" placeholder="例如：某公司创始人；未知留空"></label><fieldset class="clip-position"><legend>出镜位置（按源视频布局选择）</legend>${[["auto","自动／保留多人"],["left","左右分屏·左侧"],["right","左右分屏·右侧"],["main","主画面"],["pip","右上角小窗"]].map(([v,label]) => `<label><input type="radio" name="clip-position-${escapeHtml(s.id)}" value="${v}" ${(p.screen_position || "auto") === v ? "checked" : ""}>${label}</label>`).join("")}</fieldset></div>`;
+        return `<div class="clip-person-fields" data-speaker-id="${escapeHtml(s.id)}"><strong>${escapeHtml(s.name)} · ${escapeHtml(s.id)}</strong><label>姓名／称呼<input data-person-name maxlength="16" value="${escapeHtml(p.name || "")}" placeholder="确认后填写"></label><label>身份／职务<input data-person-identity maxlength="32" value="${escapeHtml(p.identity || "")}" placeholder="例如：某公司创始人；未知留空"></label><p class="muted">出镜人物根据本段声音与画面自动匹配，无需选择左右或小窗。</p></div>`;
       }).join("") : '<p>先选择直播，即可按说话人填写资料。</p>';
     }
     qs("#clip-template-options").addEventListener("input", () => {

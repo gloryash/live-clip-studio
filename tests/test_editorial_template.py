@@ -117,7 +117,7 @@ def test_template_revision_creates_new_history_without_overwriting_old(tmp_path)
     old=client.post('/api/clip-runs',json=payload).json()
     manager._update(old['run_id'],template_revision=1,status='completed')
     new=client.post('/api/clip-runs',json=payload).json()
-    assert new['run_id'] != old['run_id'] and new['template_revision']==3
+    assert new['run_id'] != old['run_id'] and new['template_revision']==4
     assert client.post('/api/clip-runs',json=payload).json()['run_id']==new['run_id']
     assert manager._read(old['run_id'])['template_revision']==1
 
@@ -134,3 +134,12 @@ def test_main_and_pip_positions_are_valid_template_options():
         {'speaker_id':'host','name':'','identity':'','screen_position':'pip'},
         {'speaker_id':'guest','name':'','identity':'','screen_position':'main'}]})
     assert {p['screen_position'] for p in value['participants']} == {'main','pip'}
+
+
+def test_editorial_never_borrows_crop_from_another_video_with_same_resolution(tmp_path):
+    import json
+    layouts = tmp_path / "layouts"
+    layouts.mkdir()
+    (layouts / "other.json").write_text(json.dumps({"source_size":[912,1920],"scene":[0,588,912,744]}))
+    result = json.loads(build_editorial_layout(layouts,912,1920,tmp_path/"layout.json",{"brand":"","participants":[]}).read_text())
+    assert result["scene"] == [0,0,912,1920]

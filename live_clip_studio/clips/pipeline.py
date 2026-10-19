@@ -138,7 +138,8 @@ def execute(args) -> dict:
         write_json(out / "validation.json", report)
         write_json(out / "decisions.json", decisions)
     with state.stage("plan"):
-        render_hash = fingerprint(input_hash, decisions, {"renderer": "editorial-v2-framing2" if template_id == "editorial" else RENDER_REVISION})
+        from .active_speaker import REVISION as SPEAKER_FRAMING_REVISION
+        render_hash = fingerprint(input_hash, decisions, {"renderer": SPEAKER_FRAMING_REVISION if template_id == "editorial" else RENDER_REVISION})
         plans = [make_plan(clip, doc, layout) for clip in decisions["clips"]]
         for plan in plans:
             maximum = 300 if template_id == "editorial" else 180

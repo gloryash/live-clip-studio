@@ -1,7 +1,6 @@
 """Stable, evidence-based portrait framing. Face boxes never identify a speaker."""
 from __future__ import annotations
 import math
-import subprocess
 from statistics import median
 import cv2
 import numpy as np
@@ -84,7 +83,7 @@ def main_faces(faces, bounds, side='auto'):
         if len(selected)==1:
             return selected,half,'confirmed_'+side
         return [],list(bounds),'no_face'
-    if len(large)==1: return large, list(bounds), 'dominant_face'
+    if len(inside)==1: return inside, list(bounds), 'dominant_face'
     return [],list(bounds),'multiple_people'
 
 
@@ -96,85 +95,71 @@ def active_vertical_bounds(gray, source_height):
     return [math.floor(rows[0]*scale),math.ceil((rows[-1]+1)*scale)]
 
 
+def speaking_face_crop(size, target, others):
+    """Measured face-relative composition; never a source-pixel layout preset.
+
+    Keep the whole observed head and a little torso. Exclude other observed
+    faces; if two people overlap too closely, refuse to invent a single view.
+    """
+    width, height = size
+    faces = [b for _, b in target['observations']]
+    fw, fh = median(b[2] for b in faces), median(b[3] for b in faces)
+    left, right = min(b[0] for b in faces), max(b[0]+b[2] for b in faces)
+    top, bottom = min(b[1] for b in faces), max(b[1]+b[3] for b in faces)
+    w = min(width, max(fw*2.3, right-left+fw*.5))
+    h = min(height, max(fh*2.1, bottom-top+fh*.65))
+    cx = median(b[0]+b[2]/2 for b in faces)
+    x = max(0, min(cx-w/2, width-w))
+    y = max(0, min(top-fh*.38, height-h))
+    for track in others:
+        if track['coverage'] < .5: continue
+        for _, (ox,oy,ow,oh) in track['observations']:
+            if ox+ow<=x or ox>=x+w or oy+oh<=y or oy>=y+h:
+                continue
+            if ox+ow <= left:
+                nx = max(x, (ox+ow+left)/2); w -= nx-x; x=nx
+            elif ox >= right:
+                w = min(w, (right+ox)/2-x)
+            if oy+oh <= top:
+                ny = max(y, (oy+oh+top)/2); h -= ny-y; y=ny
+            elif oy >= bottom:
+                h = min(h, (bottom+oy)/2-y)
+    # Outward rounding preserves head extents, within even source boundaries.
+    x,y = int(x)//2*2, int(y)//2*2
+    w,h = min(width-x,math.ceil(w/2)*2)//2*2,min(height-y,math.ceil(h/2)*2)//2*2
+    if min(w,h) < 2 or any(not (x<=b[0] and y<=b[1] and x+w>=b[0]+b[2] and y+h>=b[1]+b[3]) for b in faces):
+        return None
+    for track in others:
+        if track['coverage'] < .5: continue
+        if any(min(x+w,b[0]+b[2])>max(x,b[0]) and min(y+h,b[1]+b[3])>max(y,b[1]) for _,b in track['observations']):
+            return None
+    return [x,y,w,h]
+
+
 def reframe_cut(cut, plan, layout):
-    width,height=layout['source_size']; sw=456; sh=round(height*sw/width)
-    command=['ffmpeg','-v','error','-i',str(cut),'-an','-vf',f'fps=2,scale={sw}:{sh},format=gray',
-             '-f','rawvideo','-threads','1','-']
-    detector=cv2.CascadeClassifier(cv2.data.haarcascades+'haarcascade_frontalface_default.xml')
-    samples=[]; stride=sw*sh
-    # Stream frames: a five-minute portrait must not allocate a gigabyte of RGB frames.
-    with subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE) as process:
-        while True:
-            raw=process.stdout.read(stride)
-            if not raw: break
-            if len(raw)!=stride:
-                process.kill()
-                raise ValueError('EDITORIAL_FRAMES: incomplete analysis frame')
-            frame=np.frombuffer(raw,dtype=np.uint8).reshape(sh,sw)
-            boxes=detector.detectMultiScale(frame,1.1,5,minSize=(24,24))
-            samples.append((len(samples)*.5,[list(map(float,(x*width/sw,y*height/sh,w*width/sw,h*height/sh))) for x,y,w,h in boxes],active_vertical_bounds(frame,height)))
-        error=process.stderr.read().decode(errors='replace')
-        if process.wait()!=0: raise ValueError('EDITORIAL_FRAMES: '+error[-1000:])
-    people={p['speaker_id']:p for p in layout.get('template_options',{}).get('participants',[])}
-    spans=[]
-    for item in plan['items']:
-        sid=plan['source_speakers'].get(str(item['tid']))
-        if spans and spans[-1]['sid']==sid: spans[-1]['end']=item['out_e']
-        else: spans.append({'sid':sid,'start':item['out_s'],'end':item['out_e']})
-    result=[]; evidence=[]
-    for shot in plan['shots']:
-        edges={shot['fa'],shot['fb']}
-        for previous,span in zip(spans,spans[1:]):
-            # Cut at a real speaker change, never at tiny audio padding gaps.
-            explicit=any(people.get(s['sid'],{}).get('screen_position','auto')!='auto' for s in (previous,span))
-            if span['end']-span['start']>=1.8 and explicit:
-                edge=round((previous['end']+span['start'])/2*FPS)
-                if shot['fa']<edge<shot['fb']: edges.add(edge)
-        edges=sorted(edges)
-        for a,b in zip(edges,edges[1:]):
-            midpoint=(a+b)/(2*FPS)
-            span=next((s for s in spans if midpoint<s['end']),spans[-1] if spans else {})
-            side=people.get(span.get('sid'),{}).get('screen_position','auto')
-            # main/pip explicitly describe a full portrait source. The PiP
-            # often sits outside the configured split scene, so do not crop it
-            # out before face selection.
-            bounds=[0,0,width,height] if side in ('main','pip') else shot.get('scene_rect',layout['scene'])
-            nearby=[s for s in samples if a/FPS<=s[0]<b/FPS]
-            if not nearby and samples: nearby=[min(samples,key=lambda s:abs(s[0]-midpoint))]
-            decisions=[main_faces(f,bounds,side) for _,f,_ in nearby]
-            modes=[d[2] for d in decisions]
-            reliable=[d for d in decisions if d[0]]
-            mode='preserve'; rect=list(bounds)
-            # Auto crops need broad coverage; confirmed half-feeds may keep their full height through missed profiles.
-            threshold=.30 if side in ('left','right') and bounds[2]/bounds[3]>=1.05 else .70
-            if reliable and len(reliable)>=len(decisions)*threshold and len({d[2] for d in reliable})==1 and modes.count('multiple_people')<=len(modes)*.1:
-                mode=reliable[0][2];region=reliable[0][1][:]
-                if mode == 'pip_face':
-                    region = pip_region([0, 0, width, height], [f for d in reliable for f in d[0]])
-                if mode in ('dominant_face', 'main_face', 'pip_face') and region[2]/region[3]<1:
-                    top=max(region[1],min(s[2][0] for s in nearby))
-                    bottom=min(region[1]+region[3],max(s[2][1] for s in nearby))
-                    # Only remove outer bands; retain all observed face boxes.
-                    faces=[f for d in reliable for f in d[0]]
-                    if bottom-top>=region[3]*.5 and all(top<=f[1] and f[1]+f[3]<=bottom for f in faces):
-                        region=[region[0],top,region[2],bottom-top]
-                rect=choose_crop(region,[f for d in reliable for f in d[0]],trim_bottom=mode=="dominant_face")
-            result.append({**shot,'fa':a,'fb':b,'a':a/FPS,'b':b/FPS,'editorial_rect':rect,'framing_mode':mode})
-            evidence.append({'start':a/FPS,'end':b/FPS,'speaker_id':span.get('sid'),'mode':mode,'crop':rect,
-                             'samples':len(nearby),'detected_samples':len(reliable)})
-    for i,shot in enumerate(result):
-        if shot['framing_mode']=='preserve' and shot['fb']-shot['fa']<9:
-            neighbor=result[i-1] if i else result[i+1] if len(result)>1 else shot
-            if neighbor['framing_mode']!='preserve':
-                shot['editorial_rect']=neighbor['editorial_rect'][:]
-                shot['framing_mode']='brief_transition_hold'
-    # Adjacent sentence edits with essentially the same composition share one stable crop.
-    for previous,current in zip(result,result[1:]):
-        p,c=previous['editorial_rect'],current['editorial_rect']
-        if previous['framing_mode']==current['framing_mode'] and p[0]==c[0] and p[2]==c[2] and abs(p[1]-c[1])<24 and abs(p[3]-c[3])<24:
-            top=min(p[1],c[1]);bottom=max(p[1]+p[3],c[1]+c[3]);merged=[p[0],top,p[2],bottom-top]
-            previous['editorial_rect']=current['editorial_rect']=merged
-    for record,shot in zip(evidence,result):
-        record.update(mode=shot['framing_mode'],crop=shot['editorial_rect'])
-    plan['shots']=result
-    return {'revision':'editorial-framing-v3','ranges':evidence,'note':'人脸只用于稳定构图；左右发言者位置须明确填写。main/pip 用于主画面加小窗布局；检测不足保留原画面。'}
+    from .active_speaker import analyze_cut, REVISION
+    analysis = analyze_cut(cut,plan,layout['source_size'])
+    full = [0,0,*layout['source_size']]
+    shots, evidence, review = [], [], []
+    for record in analysis['ranges']:
+        chosen = record['decision']['track_id']
+        target = next((t for t in record['tracks'] if t['track_id']==chosen),None)
+        others = [t for t in record['tracks'] if t is not target]
+        crop = speaking_face_crop(layout['source_size'],target,others) if target else None
+        reason = record['decision']['reason'] if not target or crop else 'unsafe_single_person_crop'
+        mode = 'active_speaker' if crop else 'preserve'
+        shot = {'fa':record['fa'],'fb':record['fb'],'a':record['start'],'b':record['end'],
+                'mode':'duo','flash':False,'editorial_rect':crop or full[:],
+                'framing_mode':mode,'speaker_id':record['speaker_id']}
+        shots.append(shot)
+        evidence.append({**record,'mode':mode,'crop':shot['editorial_rect'],'reason':reason})
+        if not crop:
+            review.append({'start':record['start'],'end':record['end'],
+                           'speaker_id':record['speaker_id'],'reason':reason})
+    # Do not reuse the previous person's crop for short interjections. Any
+    # unresolved range remains explicit and participates in overall QA.
+    plan['shots'] = shots
+    return {**{k:v for k,v in analysis.items() if k!='ranges'}, 'revision':REVISION,
+            'ranges':evidence,'review_ranges':review,
+            'note':'逐段音画关联；姓名、身份、历史位置不参与选脸。未确认则保留源画面并需复核。'}
+

@@ -27,9 +27,9 @@ TEMPLATES: dict[str, ClipTemplate] = {
         count=3,
     ),
     "editorial": ClipTemplate(
-        id="editorial", name="观点对谈", revision=3,
+        id="editorial", name="观点对谈", revision=4,
         description="黑绿观点标题、自然问答、单一画面窗口、克制字幕和栏目署名。",
-        accepts_identity=True, style_summary="v3 · 人物主体构图 · 主画面／小窗可选 · 姓名身份可选填",
+        accepts_identity=True, style_summary="v4 · 音画关联切换发言者 · 构图按素材分析 · 姓名身份可选填",
     ),
 }
 
@@ -121,11 +121,9 @@ def normalize_options(template_id: str, value: Any = None) -> dict[str, Any]:
 
 def build_editorial_layout(layout_dir: Path, width: int, height: int, target: Path, options: dict) -> Path:
     import json
-    try:
-        scene = json.loads(choose_layout(layout_dir, width, height).read_text())["scene"]
-    except ValueError:
-        scene = [0, 0, width, height]
-    # No association of audio identity with screen coordinates.
+    # Matching resolution is not evidence of matching composition. All source
+    # coordinates are measured by the audio/visual analysis of this recording.
+    scene = [0, 0, width, height]
     full = [0, 0, width, height]
     document = {"version": 1, "source_size": [width, height], "scene": scene,
                 "people": {"SOURCE": {"role": "G", "wide": full, "close": full, "tag": ["", ""]}},

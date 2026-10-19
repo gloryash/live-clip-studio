@@ -17,6 +17,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+framing = [
+  "torch>=2.2,<3",
+  "python-speech-features==0.6",
+]
 diarization = [
   "numpy>=1.26,<3",
   "scipy>=1.11,<2",

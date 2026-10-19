@@ -478,6 +478,10 @@ diarization = [
     { name = "speechbrain" },
     { name = "torch" },
 ]
+framing = [
+    { name = "python-speech-features" },
+    { name = "torch" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -497,14 +501,16 @@ requires-dist = [
     { name = "opencv-python-headless", specifier = ">=4.10,<5" },
     { name = "pillow", specifier = ">=11,<13" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
+    { name = "python-speech-features", marker = "extra == 'framing'", specifier = "==0.6" },
     { name = "scikit-learn", marker = "extra == 'diarization'", specifier = ">=1.5,<2" },
     { name = "scipy", marker = "extra == 'diarization'", specifier = ">=1.11,<2" },
     { name = "soundfile", marker = "extra == 'diarization'", specifier = ">=0.12,<1" },
     { name = "speechbrain", marker = "extra == 'diarization'", specifier = ">=1.0,<2" },
     { name = "torch", marker = "extra == 'diarization'", specifier = ">=2.2,<3" },
+    { name = "torch", marker = "extra == 'framing'", specifier = ">=2.2,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
 ]
-provides-extras = ["diarization"]
+provides-extras = ["framing", "diarization"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -997,6 +1003,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/5b/42/55c32bb9b12693c09
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/04/e8135ebd1ad02c56ec633277529b2602ff99ff634be76cdba5744cf554fd/python_multipart-0.0.32-py3-none-any.whl", hash = "sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23", size = 30042, upload-time = "2026-06-04T16:18:57.319Z" },
 ]
+
+[[package]]
+name = "python-speech-features"
+version = "0.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/d1/94c59e20a2631985fbd2124c45177abaa9e0a4eee8ba8a305aa26fc02a8e/python_speech_features-0.6.tar.gz", hash = "sha256:a0aebf746464bc929dc3162cb369d7ff967c398c5120ddf5fb40a65f01b92b11", size = 5588, upload-time = "2017-08-16T01:46:13.644Z" }
 
 [[package]]
 name = "pyyaml"
