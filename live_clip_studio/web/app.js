@@ -43,7 +43,13 @@
   async function initUpload() {
     const input = qs("#video-file"), button = qs("#upload-button"), drop = qs("#drop-zone");
     const warning = qs("#whisper-warning"), status = qs("#service-status"), error = qs("#upload-error");
-    let ready = false;
+    let ready = false, uploading = false;
+
+    function updateUploadState() {
+      button.disabled = uploading || !ready || !input.files.length;
+      input.disabled = uploading;
+      drop.setAttribute("aria-disabled", String(uploading));
+    }
 
     async function checkHealth() {
       status.className = "service-pill checking";
@@ -60,14 +66,27 @@
         status.lastElementChild.textContent = "语音服务未开启";
         warning.hidden = false;
       }
-      button.disabled = !ready || !input.files.length;
+      updateUploadState();
+    }
+
+    function isVideo(file) {
+      return file.type.startsWith("video/") || /\.(mp4|mov|mkv|webm)$/i.test(file.name);
     }
 
     function showFile(file) {
-      if (!file) return;
+      if (!file || uploading) return;
+      if (!isVideo(file) || !file.size) {
+        error.textContent = "请选择非空的视频文件（MP4 / MOV / MKV / WEBM）。";
+        error.hidden = false;
+        return;
+      }
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
       qs("#file-title").textContent = file.name;
       qs("#file-meta").textContent = `${formatBytes(file.size)} · ${file.type || "VIDEO"}`;
-      button.disabled = !ready;
+      error.hidden = true;
+      updateUploadState();
     }
 
     function displayHistory(jobs) {
@@ -109,25 +128,55 @@
       }
     }
 
-    input.addEventListener("change", () => showFile(input.files[0]));
+    input.addEventListener("change", () => {
+      const file = input.files[0];
+      if (file && (!isVideo(file) || !file.size)) input.value = "";
+      showFile(file);
+      updateUploadState();
+    });
+    drop.addEventListener("keydown", (event) => {
+      if (event.target !== drop || !["Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      if (!uploading) input.click();
+    });
+    document.addEventListener("paste", (event) => {
+      if (event.target instanceof Element && (event.target.matches("input, textarea") || event.target.isContentEditable)) return;
+      const files = [...(event.clipboardData?.files || [])];
+      if (uploading) { event.preventDefault(); return; }
+      const file = files.find(isVideo);
+      if (file) {
+        event.preventDefault();
+        showFile(file);
+      } else {
+        error.textContent = "剪贴板中没有视频文件。请在文件夹中复制视频文件，再回到这里粘贴；也可以选择或拖入视频。";
+        error.hidden = false;
+      }
+    });
     ["dragenter", "dragover"].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add("dragging"); }));
     ["dragleave", "drop"].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove("dragging"); }));
     drop.addEventListener("drop", (event) => {
-      if (!event.dataTransfer.files.length) return;
-      const transfer = new DataTransfer();
-      transfer.items.add(event.dataTransfer.files[0]);
-      input.files = transfer.files;
-      showFile(input.files[0]);
+      const files = [...event.dataTransfer.files];
+      showFile(files.find(isVideo) || files[0]);
     });
 
     button.addEventListener("click", () => {
-      if (!ready || !input.files[0]) return;
+      if (uploading || !ready || !input.files[0]) return;
       error.hidden = true;
-      button.disabled = true;
+      uploading = true;
+      updateUploadState();
       qs("#upload-progress").hidden = false;
+      qs("#upload-bar").value = 0;
+      qs("#upload-percent").textContent = "0%";
       const form = new FormData();
       form.append("file", input.files[0]);
       const xhr = new XMLHttpRequest();
+      function uploadFailed(message) {
+        uploading = false;
+        updateUploadState();
+        error.textContent = message;
+        error.hidden = false;
+        qs("#upload-progress").hidden = true;
+      }
       xhr.open("POST", "/api/jobs");
       xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable) return;
@@ -144,12 +193,10 @@
           }
           window.location.assign(data.workspace_url);
         } else {
-          error.textContent = data?.detail?.message || "视频上传失败";
-          error.hidden = false;
-          button.disabled = false;
+          uploadFailed(data?.detail?.message || "视频上传失败");
         }
       };
-      xhr.onerror = () => { error.textContent = "无法连接本地处理服务"; error.hidden = false; button.disabled = false; };
+      xhr.onerror = () => uploadFailed("无法连接本地处理服务");
       xhr.send(form);
     });
     await Promise.all([checkHealth(), loadHistory()]);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Live Clip Studio · 直播切片工作台</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20261018-editorial-v2">
+  <link rel="stylesheet" href="/assets/app.css?v=20261020-video-paste">
 </head>
 <body data-page="upload">
   <div class="signal-line" aria-hidden="true"></div>
@@ -34,12 +34,13 @@
         <div><span class="console-index">INPUT / A</span><h2 id="upload-heading">载入直播录像</h2></div>
         <span class="local-badge">仅本机</span>
       </div>
-      <label class="drop-zone" id="drop-zone" for="video-file">
+      <label class="drop-zone" id="drop-zone" for="video-file" tabindex="0" role="button" aria-describedby="paste-hint">
         <input id="video-file" type="file" accept="video/*,.mp4,.mov,.mkv,.webm" hidden>
         <span class="reel-icon" aria-hidden="true"><i></i><i></i><i></i></span>
-        <strong id="file-title">选择视频，或拖到这里</strong>
+        <strong id="file-title" aria-live="polite">选择、拖入或粘贴视频</strong>
         <small id="file-meta">MP4 / MOV / MKV / WEBM · 文件不会上传云端</small>
       </label>
+      <p class="paste-hint" id="paste-hint">在文件夹中复制视频文件，回到此页面按 <kbd>⌘V</kbd> / <kbd>Ctrl+V</kbd> 粘贴，再点击“开始分析”。</p>
 
       <div class="warning-panel" id="whisper-warning" hidden>
         <span>!</span>
@@ -110,6 +111,6 @@
   </main>
 
   <footer class="site-foot"><span>WHISPER LARGE V3 TURBO</span><span>SPEECHBRAIN DIARIZATION</span><span>FFMPEG SCENE DETECTION</span></footer>
-  <script src="/assets/app.js?v=20261018-editorial-v2" defer></script>
+  <script src="/assets/app.js?v=20261020-video-paste" defer></script>
 </body>
 </html>
